@@ -1172,6 +1172,30 @@
                     </OnClick>
                 </Scripts>
             </CheckButton>
+            <CheckButton name="SmartBuffOptionsFrame_cbHideSAIfIdle" inherits="UICheckButtonTemplate">
+                <Size>
+                    <AbsDimension x="20" y="20" />
+                </Size>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="SmartBuffOptionsFrame_cbHideSAButton" relativePoint="TOPLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="-15" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <HitRectInsets>
+                    <AbsInset left="0" right="0" top="0" bottom="0" />
+                </HitRectInsets>
+                <Scripts>
+                    <OnLoad>
+                        _G[self:GetName().."Text"]:SetText(SMARTBUFF_OFT_HIDEIFIDLE);
+                        _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
+                    </OnLoad>
+                    <OnClick>
+                        SMARTBUFF_OHideSAIfIdle();
+                    </OnClick>
+                </Scripts>
+            </CheckButton>
             <Button name="SmartBuffOptionsFrame_ddTemplates" inherits="UIDropDownMenuTemplate">
                 <Size>
                     <AbsDimension x="160" y="16" />

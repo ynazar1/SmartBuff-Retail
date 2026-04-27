@@ -115,6 +115,7 @@ SMARTBUFF_OFT_BUFFINCITIES   = "Buff in cities";
 SMARTBUFF_OFT_BLDURATION     = "Blocked";
 SMARTBUFF_OFT_ANTIDAZE       = "Anti daze";
 SMARTBUFF_OFT_HIDESABUTTON   = "Hide action button";
+SMARTBUFF_OFT_HIDEIFIDLE     = "Hide if idle";
 SMARTBUFF_OFT_RETAINTEMPLATE = "Retain";
 SMARTBUFF_OFT_INCOMBAT       = "in combat";
 SMARTBUFF_OFT_SMARTDEBUFF    = "SmartDebuff";
@@ -174,6 +175,7 @@ SMARTBUFF_OFTT_BLDURATION    = "How many seconds, players will be blocked.\n0 = 
 SMARTBUFF_OFTT_ANTIDAZE      = "Automatically cancels the\naspect of the cheetah/pack\nif someone gets dazed\n(self or group).";
 SMARTBUFF_OFTT_SPLASHSTYLE   = "Changes the fontstyle of\nthe buff messages.";
 SMARTBUFF_OFTT_HIDESABUTTON  = "Hides the SmartBuff action button.";
+SMARTBUFF_OFTT_HIDEIFIDLE    = "Hide the action button when nothing is queued; show it when a buff is pending.";
 SMARTBUFF_OFTT_RETAINTEMPLATE = "When switching to a fresh template (never used, or no buffs enabled),\nthe current buff settings will be copied to it when this is checked.\nBlank templates are never copied over, so you cannot accidentally overwrite a configured template.";
 SMARTBUFF_OFTT_INCOMBAT      = "Buffs flagged In-Combat (in per-buff options) are cast **ONCE** in as a best-effort\nsequence — when combat starts, and once again after combat resurrection if still fighting.\nNormal buff logic is disabled in combat!\nDo not add in-combat spells with cooldowns — they break the sequence.";
 SMARTBUFF_OFTT_SMARTDEBUFF   = "Shows the SmartDebuff frame.";

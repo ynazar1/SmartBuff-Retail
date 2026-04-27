@@ -71,6 +71,7 @@ function SmartBuff_SetupTooltips()
   t(SmartBuffOptionsFrameBLDuration, SMARTBUFF_OFTT_BLDURATION);
   t(SmartBuffOptionsFrame_cbHideMmButton, SMARTBUFF_OFTT_HIDEMMBUTTON);
   t(SmartBuffOptionsFrame_cbHideSAButton, SMARTBUFF_OFTT_HIDESABUTTON);
+  t(SmartBuffOptionsFrame_cbHideSAIfIdle, SMARTBUFF_OFTT_HIDEIFIDLE);
   t(SmartBuffOptionsFrame_cbRetainTemplate, SMARTBUFF_OFTT_RETAINTEMPLATE);
   t(SmartBuffOptionsFrame_cbSelfFirst, SMARTBUFF_OFTT_SELFFIRST);
   t(SmartBuffOptionsFrameRBT, SMARTBUFF_OFTT_RBT);
