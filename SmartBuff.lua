@@ -10,7 +10,7 @@
 -- and options frame on first load... could be annoying if done too often
 -- What's new is pulled from the SMARTBUFF_WHATSNEW string in localization.en.lua
 -- this is mostly optional, but good for internal housekeeping
-SMARTBUFF_VERSION            = "r42.030426"; -- EU Date: DDMMYY
+SMARTBUFF_VERSION            = "r42.042726"; -- EU Date: DDMMYY
 -- Update the NR below to force reload of SB_Buffs on first login
 -- This is now OPTIONAL for most changes - only needed for major logical reworks or large patch changes.
 -- Definition changes (spell IDs, Links, Chain) in buffs.lua no longer require version bumps.
@@ -2335,6 +2335,40 @@ function SMARTBUFF_IsTalentFrameVisible()
 end
 
 -- Main Check functions
+-- With HideSAIfIdle, show the action button only when a buff is pending. Visibility refresh is skipped in combat.
+-- (visibility left unchanged until PLAYER_REGEN_ENABLED / next OOC check).
+function SMARTBUFF_RefreshSAButtonIdleState(hasPending)
+  if (not isInit or not O) then
+    return;
+  end
+  if (not O.Toggle) then
+    if (not InCombatLockdown()) then
+      SmartBuff_KeyButton:Hide();
+    end
+    return;
+  end
+  if (O.HideSAButton) then
+    if (not InCombatLockdown()) then
+      SmartBuff_KeyButton:Hide();
+    end
+    return;
+  end
+  if (not O.HideSAIfIdle) then
+    if (not InCombatLockdown()) then
+      SmartBuff_KeyButton:Show();
+    end
+    return;
+  end
+  if (InCombatLockdown() or UnitAffectingCombat("player")) then
+    return;
+  end
+  if (hasPending) then
+    SmartBuff_KeyButton:Show();
+  else
+    SmartBuff_KeyButton:Hide();
+  end
+end
+
 function SMARTBUFF_PreCheck(mode, force)
   if (not isInit) then return false end
 
@@ -2391,7 +2425,12 @@ function SMARTBUFF_PreCheck(mode, force)
   end
 
   SMARTBUFF_SetButtonTexture(SmartBuff_KeyButton, imgSB);
-  if (SmartBuffOptionsFrame:IsVisible()) then return false; end
+  if (SmartBuffOptionsFrame:IsVisible()) then
+    if (O.HideSAIfIdle and not InCombatLockdown() and not UnitAffectingCombat("player")) then
+      SMARTBUFF_RefreshSAButtonIdleState(false);
+    end
+    return false;
+  end
 
   if (UnitAffectingCombat("player")) then
     isCombat = true;
@@ -2404,6 +2443,9 @@ function SMARTBUFF_PreCheck(mode, force)
   -- Don't run the check loop until buff list is ready (missing B/Order, or Order has entries but cBuffs wasn't built)
   if (not B or not B[CS()] or not B[CS()].Order or (numBuffs == 0 and next(B[CS()].Order))) then
     SMARTBUFF_ScheduleSetBuffs();
+    if (O.HideSAIfIdle and not InCombatLockdown() and not UnitAffectingCombat("player")) then
+      SMARTBUFF_RefreshSAButtonIdleState(false);
+    end
     return false;
   end
 
@@ -2963,6 +3005,13 @@ function SMARTBUFF_NotifyInCombatCastsequenceReminders(mode)
 end
 
 local IsChecking = false;
+local function SMARTBUFF_CheckFinish(hasPending)
+  IsChecking = false;
+  if (O and O.HideSAIfIdle) then
+    SMARTBUFF_RefreshSAButtonIdleState(hasPending);
+  end
+end
+
 function SMARTBUFF_Check(mode, force)
   -- print("precheck "..tostring(SMARTBUFF_PreCheck(mode, force)))
   if (IsChecking or not SMARTBUFF_PreCheck(mode, force)) then return; end
@@ -3013,12 +3062,12 @@ function SMARTBUFF_Check(mode, force)
   if (inPvPInstance and pvPMatchActive and cBuffsToCastAfterBGRes and #cBuffsToCastAfterBGRes > 0) then
     local entry = cBuffsToCastAfterBGRes[1];
     if (entry and entry.actionType and entry.spellName) then
-      IsChecking = false;
+      SMARTBUFF_CheckFinish(true);
       return 0, entry.actionType, entry.spellName, entry.slot or -1, "player", nil, true;  -- 7th = isBGRes
     end
   end
   if skipChecks then
-    IsChecking = false;
+    SMARTBUFF_CheckFinish(false);
     return;
   end
 
@@ -3031,7 +3080,7 @@ function SMARTBUFF_Check(mode, force)
       if (i == 0 and InCombatLockdown() and not O.InCombat) then
         -- skip
       else
-        IsChecking = false;
+        SMARTBUFF_CheckFinish(true);
         return i, actionType, spellName, slot, "target", buffType;
       end
     end
@@ -3076,7 +3125,7 @@ function SMARTBUFF_Check(mode, force)
                     --tLastCheck = tLastCheck + 2;
                   end
                 end
-                IsChecking = false;
+                SMARTBUFF_CheckFinish(true);
                 return i, actionType, spellName, slot, unit, buffType;
               end
             end
@@ -3095,7 +3144,7 @@ function SMARTBUFF_Check(mode, force)
     end
   end
   --tLastCheck = GetTime();
-  IsChecking = false;
+  SMARTBUFF_CheckFinish(false);
 end
 
 -- END SMARTBUFF_Check
@@ -4920,6 +4969,7 @@ function SMARTBUFF_Options_Init(self)
 
   if (O.HideMmButton == nil) then O.HideMmButton = false; end
   if (O.HideSAButton == nil) then O.HideSAButton = false; end
+  if (O.HideSAIfIdle == nil) then O.HideSAIfIdle = false; end
 
   if (O.SBButtonFix == nil) then O.SBButtonFix = false; end
   if (O.SBButtonDownVal == nil or O.SBButtonDownVal == true or O.SBButtonDownVal == false) then O.SBButtonDownVal =
@@ -5433,9 +5483,33 @@ function SMARTBUFF_OHideMmButton()
   SMARTBUFF_CheckMiniMapButton();
 end
 
+function SMARTBUFF_UpdateHideSAIfIdleOptionState()
+  if (not isInit or not SmartBuffOptionsFrame_cbHideSAIfIdle) then
+    return;
+  end
+  if (O and O.HideSAButton) then
+    SmartBuffOptionsFrame_cbHideSAIfIdle:Disable();
+  else
+    SmartBuffOptionsFrame_cbHideSAIfIdle:Enable();
+  end
+end
+
 function SMARTBUFF_OHideSAButton()
   O.HideSAButton = not O.HideSAButton;
   SMARTBUFF_ShowSAButton();
+  SMARTBUFF_UpdateHideSAIfIdleOptionState();
+  if (O.Toggle and O.HideSAIfIdle and not O.HideSAButton) then
+    SMARTBUFF_Check(1, true);
+  end
+end
+
+function SMARTBUFF_OHideSAIfIdle()
+  O.HideSAIfIdle = not O.HideSAIfIdle;
+  if (O.Toggle) then
+    SMARTBUFF_Check(1, true);
+  else
+    SMARTBUFF_RefreshSAButtonIdleState(false);
+  end
 end
 
 function SMARTBUFF_ORetainTemplate()
@@ -5809,6 +5883,8 @@ function SMARTBUFF_Options_OnShow()
   SmartBuffOptionsFrame_cbMsgError:SetChecked(O.ToggleMsgError);
   SmartBuffOptionsFrame_cbHideMmButton:SetChecked(O.HideMmButton);
   SmartBuffOptionsFrame_cbHideSAButton:SetChecked(O.HideSAButton);
+  SmartBuffOptionsFrame_cbHideSAIfIdle:SetChecked(O.HideSAIfIdle);
+  SMARTBUFF_UpdateHideSAIfIdleOptionState();
   SmartBuffOptionsFrame_cbRetainTemplate:SetChecked(O.RetainTemplate);
 
   SmartBuffOptionsFrameRebuffTimer:SetValue(O.RebuffTimer);
@@ -6238,12 +6314,15 @@ end
 -- Secure button functions, NEW TBC ---------------------------------------------------------------------------------------
 
 function SMARTBUFF_ShowSAButton()
-  if (not InCombatLockdown()) then
-    if (O.HideSAButton) then
-      SmartBuff_KeyButton:Hide();
-    else
-      SmartBuff_KeyButton:Show();
-    end
+  if (InCombatLockdown()) then
+    return;
+  end
+  if (O.HideSAButton) then
+    SmartBuff_KeyButton:Hide();
+  elseif (O.HideSAIfIdle) then
+    return;
+  else
+    SmartBuff_KeyButton:Show();
   end
 end
 

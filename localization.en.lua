@@ -7,17 +7,14 @@ SMARTBUFF_WHATSNEW = "\n\n|cffffffff         Whats new:|r\n\n"
   .."          |cffffffffMidnight & Classic versions by Codermik, additional retail\n"
   .."          programming by MrWizard and Speedwaystar.\n"
   .."\n\n"
+  .."          Changes in r42.042726:\n\n"
+  .."             * New UI Option: Hide Action Button if Idle\n"
+  .."             * Internal: Food init cleanup\n"
+  .."             * Internal: Optimization of inventory scan (hopefully)\n"
+  .."\n\n"
   .."          Changes in r42.030426:\n\n"
   .."             * Bugfix (hopefully): Optimized performance in raids\n"
   .."             * Bugfix: Tracking (class and professions) is back!\n"
-  .."\n\n"
-  .."          Changes in r41.230326:\n\n"
-  .."             * Bugfix: fix main-hand/offhand buffing\n"
-  .."             * Bugfix: fix heartily well fed detection\n"
-  .."             * New: OOC - cast Revive Pet if pet is dead\n"
-  .."             * New: More robust in-combat buffing,\n"
-  .."               - at start of combat, buff once only what's missing\n"
-  .."               - very finicky due to Blizzard restrictions, less broken than before\n"
   .."\n\n"
   .."          |c0000FF96Many thanks to Chris S., Samantha R. and\n"
   .."          Twilight's Sundries for their kind donations.\n"
@@ -115,6 +112,7 @@ SMARTBUFF_OFT_BUFFINCITIES   = "Buff in cities";
 SMARTBUFF_OFT_BLDURATION     = "Blocked";
 SMARTBUFF_OFT_ANTIDAZE       = "Anti daze";
 SMARTBUFF_OFT_HIDESABUTTON   = "Hide action button";
+SMARTBUFF_OFT_HIDEIFIDLE     = "Hide if idle";
 SMARTBUFF_OFT_RETAINTEMPLATE = "Retain";
 SMARTBUFF_OFT_INCOMBAT       = "in combat";
 SMARTBUFF_OFT_SMARTDEBUFF    = "SmartDebuff";
@@ -174,6 +172,7 @@ SMARTBUFF_OFTT_BLDURATION    = "How many seconds, players will be blocked.\n0 = 
 SMARTBUFF_OFTT_ANTIDAZE      = "Automatically cancels the\naspect of the cheetah/pack\nif someone gets dazed\n(self or group).";
 SMARTBUFF_OFTT_SPLASHSTYLE   = "Changes the fontstyle of\nthe buff messages.";
 SMARTBUFF_OFTT_HIDESABUTTON  = "Hides the SmartBuff action button.";
+SMARTBUFF_OFTT_HIDEIFIDLE    = "Hide the action button when nothing is queued; show it when a buff is pending.";
 SMARTBUFF_OFTT_RETAINTEMPLATE = "When switching to a fresh template (never used, or no buffs enabled),\nthe current buff settings will be copied to it when this is checked.\nBlank templates are never copied over, so you cannot accidentally overwrite a configured template.";
 SMARTBUFF_OFTT_INCOMBAT      = "Buffs flagged In-Combat (in per-buff options) are cast **ONCE** in as a best-effort\nsequence — when combat starts, and once again after combat resurrection if still fighting.\nNormal buff logic is disabled in combat!\nDo not add in-combat spells with cooldowns — they break the sequence.";
 SMARTBUFF_OFTT_SMARTDEBUFF   = "Shows the SmartDebuff frame.";
