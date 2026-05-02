@@ -37,7 +37,7 @@ S.ToyboxByID = { };
 -- ---------------------------------------------------------------------------
 -- opts (optional): relaxInstant — if GetItemInfoInstant is nil, still keep numeric id (curated lists only).
 --                  skipAsync — omit ContinueOnItemLoad (BuildItemTables uses item:ID; saves many callbacks on large lists).
-local function GetItems(items, opts)
+local function getItems(items, opts)
   opts = opts or {};
   local relaxInstant = opts.relaxInstant;
   local skipAsync = opts.skipAsync;
@@ -104,9 +104,9 @@ end
 
 -- Helper function to get spell info only if variable is not already set
 -- Only calls API if variable is nil, and only updates if valid response received
--- Usage: GetSpellInfoIfNeeded("SMARTBUFF_VARNAME", spellId, isSpellbookSpell)
+-- Usage: getSpellInfoIfNeeded("SMARTBUFF_VARNAME", spellId, isSpellbookSpell)
 -- isSpellbookSpell: true for class/talent spells (use spellbook check), false/nil for item spells (flasks/potions)
-local function GetSpellInfoIfNeeded(varName, spellId, isSpellbookSpell)
+local function getSpellInfoIfNeeded(varName, spellId, isSpellbookSpell)
   -- Track expected spell for cache sync (and O(1) reverse lookup in DATA_LOAD_RESULT)
   if (SMARTBUFF_ExpectedData and SMARTBUFF_ExpectedData.spells) then
     SMARTBUFF_ExpectedData.spells[varName] = spellId;
@@ -209,9 +209,9 @@ end
 
 -- Helper function to get spell info directly from C_Spell.GetSpellInfo() only if variable is not already set
 -- Loads from cache first, then API if needed
--- Usage: GetSpellInfoDirectIfNeeded("SMARTBUFF_VARNAME", spellId, isSpellbookSpell)
+-- Usage: getSpellInfoDirectIfNeeded("SMARTBUFF_VARNAME", spellId, isSpellbookSpell)
 -- isSpellbookSpell: true for character/racial spells (use spellbook check), false/nil for item spells (flasks/potions/scrolls)
-local function GetSpellInfoDirectIfNeeded(varName, spellId, isSpellbookSpell)
+local function getSpellInfoDirectIfNeeded(varName, spellId, isSpellbookSpell)
   -- Track expected spell for cache sync (and O(1) reverse lookup in DATA_LOAD_RESULT)
   if (SMARTBUFF_ExpectedData and SMARTBUFF_ExpectedData.spells) then
     SMARTBUFF_ExpectedData.spells[varName] = spellId;
@@ -315,7 +315,7 @@ end
 
 -- Helper function to validate item data completeness
 -- Returns true if item data looks complete and reliable
-local function ValidateItemData(itemLink, minLevel, texture)
+local function validateItemData(itemLink, minLevel, texture)
   -- Must have itemLink to be considered complete
   if (not itemLink or itemLink == "") then return false; end
   -- minLevel and texture should be present (can be 0/nil for some items, but should be explicitly set)
@@ -325,8 +325,8 @@ end
 
 -- Helper function to get item info only if variable is not already set
 -- Loads from cache first, then API if needed
--- Usage: GetItemInfoIfNeeded("SMARTBUFF_VARNAME", itemId)
-local function GetItemInfoIfNeeded(varName, itemId)
+-- Usage: getItemInfoIfNeeded("SMARTBUFF_VARNAME", itemId)
+local function getItemInfoIfNeeded(varName, itemId)
   -- Track expected item for cache sync (and O(1) reverse lookup in DATA_LOAD_RESULT)
   if (SMARTBUFF_ExpectedData and SMARTBUFF_ExpectedData.items) then
     SMARTBUFF_ExpectedData.items[varName] = itemId;
@@ -351,7 +351,7 @@ local function GetItemInfoIfNeeded(varName, itemId)
       local texture = itemData and itemData[2];
 
       -- Validate cached data - if incomplete, mark for refresh
-      if (not ValidateItemData(cachedLink, minLevel, texture)) then
+      if (not validateItemData(cachedLink, minLevel, texture)) then
         if (not cache.needsRefresh) then cache.needsRefresh = {}; end
         cache.needsRefresh[varName] = true;
         if (cache.itemIDs and cache.itemIDs[varName]) then
@@ -416,8 +416,8 @@ local function GetItemInfoIfNeeded(varName, itemId)
   end
 end
 
-local function InsertItem(t, type, itemId, spellId, duration, link)
-  -- Use GetItemInfoIfNeeded pattern to track and cache items
+local function insertItem(t, type, itemId, spellId, duration, link)
+  -- Use getItemInfoIfNeeded pattern to track and cache items
   -- Generate a unique varName for tracking (won't be used as global, just for cache tracking)
   local varName = "SMARTBUFF_DYNAMIC_" .. tostring(itemId);
 
@@ -480,7 +480,7 @@ local function InsertItem(t, type, itemId, spellId, duration, link)
     end
   end
 
-  -- Get spell info (use GetSpellInfoDirectIfNeeded pattern)
+  -- Get spell info (use getSpellInfoDirectIfNeeded pattern)
   -- Item spells (flasks/potions/toys) are NOT spellbook spells - don't use spellbook check
   local spellVarName = "SMARTBUFF_DYNAMIC_SPELL_" .. tostring(spellId);
   if (SMARTBUFF_ExpectedData and SMARTBUFF_ExpectedData.spells) then
@@ -541,8 +541,8 @@ local function InsertItem(t, type, itemId, spellId, duration, link)
   -- If neither item nor itemId is available, skip adding (will be added when data loads via events)
 end
 
-local function AddItem(itemId, spellId, duration, link)
-  InsertItem(SMARTBUFF_SCROLL, SMARTBUFF_CONST_SCROLL, itemId, spellId, duration, link);
+local function addItem(itemId, spellId, duration, link)
+  insertItem(SMARTBUFF_SCROLL, SMARTBUFF_CONST_SCROLL, itemId, spellId, duration, link);
 end
 
 -- ---------------------------------------------------------------------------
@@ -634,93 +634,93 @@ end
 function SMARTBUFF_InitItemList()
   -- Weapon enhancements: mana gems, sharpening stones, weightstones, oils (classic → TWW)
   -- Only call API if variable is not already set (optimization: skip if already loaded and verified)
-  GetItemInfoIfNeeded("SMARTBUFF_MANAGEM", 36799); --"Mana Gem"
-  GetItemInfoIfNeeded("SMARTBUFF_BRILLIANTMANAGEM", 81901); --"Brilliant Mana Gem"
-  GetItemInfoIfNeeded("SMARTBUFF_SSROUGH", 2862); --"Rough Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSCOARSE", 2863); --"Coarse Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSHEAVY", 2871); --"Heavy Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSSOLID", 7964); --"Solid Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSDENSE", 12404); --"Dense Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSELEMENTAL", 18262); --"Elemental Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSFEL", 23528); --"Fel Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_SSADAMANTITE", 23529); --"Adamantite Sharpening Stone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSROUGH", 3239); --"Rough Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSCOARSE", 3240); --"Coarse Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSHEAVY", 3241); --"Heavy Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSSOLID", 7965); --"Solid Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSDENSE", 12643); --"Dense Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSFEL", 28420); --"Fel Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_WSADAMANTITE", 28421); --"Adamantite Weightstone"
-  GetItemInfoIfNeeded("SMARTBUFF_SHADOWOIL", 3824); --"Shadow Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_FROSTOIL", 3829); --"Frost Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_MANAOIL1", 20745); --"Minor Mana Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_MANAOIL2", 20747); --"Lesser Mana Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_MANAOIL3", 20748); --"Brilliant Mana Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_MANAOIL4", 22521); --"Superior Mana Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_WIZARDOIL1", 20744); --"Minor Wizard Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_WIZARDOIL2", 20746); --"Lesser Wizard Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_WIZARDOIL3", 20750); --"Wizard Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_WIZARDOIL4", 20749); --"Brilliant Wizard Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_WIZARDOIL5", 22522); --"Superior Wizard Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_SHADOWCOREOIL", 171285); --"Shadowcore Oil"
-  GetItemInfoIfNeeded("SMARTBUFF_EMBALMERSOIL", 171286); --"Embalmer's Oil"
+  getItemInfoIfNeeded("SMARTBUFF_MANAGEM", 36799); --"Mana Gem"
+  getItemInfoIfNeeded("SMARTBUFF_BRILLIANTMANAGEM", 81901); --"Brilliant Mana Gem"
+  getItemInfoIfNeeded("SMARTBUFF_SSROUGH", 2862); --"Rough Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSCOARSE", 2863); --"Coarse Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSHEAVY", 2871); --"Heavy Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSSOLID", 7964); --"Solid Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSDENSE", 12404); --"Dense Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSELEMENTAL", 18262); --"Elemental Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSFEL", 23528); --"Fel Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_SSADAMANTITE", 23529); --"Adamantite Sharpening Stone"
+  getItemInfoIfNeeded("SMARTBUFF_WSROUGH", 3239); --"Rough Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSCOARSE", 3240); --"Coarse Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSHEAVY", 3241); --"Heavy Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSSOLID", 7965); --"Solid Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSDENSE", 12643); --"Dense Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSFEL", 28420); --"Fel Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_WSADAMANTITE", 28421); --"Adamantite Weightstone"
+  getItemInfoIfNeeded("SMARTBUFF_SHADOWOIL", 3824); --"Shadow Oil"
+  getItemInfoIfNeeded("SMARTBUFF_FROSTOIL", 3829); --"Frost Oil"
+  getItemInfoIfNeeded("SMARTBUFF_MANAOIL1", 20745); --"Minor Mana Oil"
+  getItemInfoIfNeeded("SMARTBUFF_MANAOIL2", 20747); --"Lesser Mana Oil"
+  getItemInfoIfNeeded("SMARTBUFF_MANAOIL3", 20748); --"Brilliant Mana Oil"
+  getItemInfoIfNeeded("SMARTBUFF_MANAOIL4", 22521); --"Superior Mana Oil"
+  getItemInfoIfNeeded("SMARTBUFF_WIZARDOIL1", 20744); --"Minor Wizard Oil"
+  getItemInfoIfNeeded("SMARTBUFF_WIZARDOIL2", 20746); --"Lesser Wizard Oil"
+  getItemInfoIfNeeded("SMARTBUFF_WIZARDOIL3", 20750); --"Wizard Oil"
+  getItemInfoIfNeeded("SMARTBUFF_WIZARDOIL4", 20749); --"Brilliant Wizard Oil"
+  getItemInfoIfNeeded("SMARTBUFF_WIZARDOIL5", 22522); --"Superior Wizard Oil"
+  getItemInfoIfNeeded("SMARTBUFF_SHADOWCOREOIL", 171285); --"Shadowcore Oil"
+  getItemInfoIfNeeded("SMARTBUFF_EMBALMERSOIL", 171286); --"Embalmer's Oil"
   -- Dragonflight
-  GetItemInfoIfNeeded("SMARTBUFF_SafeRockets_q1", 198160); -- Completely Safe Rockets (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_SafeRockets_q2", 198161); -- Completely Safe Rockets (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_SafeRockets_q3", 198162); -- Completely Safe Rockets (Quality 3)
-  GetItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q1", 194821); -- Buzzing Rune (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q2", 194822); -- Buzzing Rune (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q3", 194823); -- Buzzing Rune (Quality 3)
-  GetItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q1", 194824); -- Chirping Rune (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q2", 194825); -- Chirping Rune (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q3", 194826); -- Chirping Rune (Quality 3)
-  GetItemInfoIfNeeded("SMARTBUFF_HowlingRune_q1", 194821); -- Howling Rune (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_HowlingRune_q2", 194822); -- Howling Rune (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_HowlingRune_q3", 194820); -- Howling Rune (Quality 3)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q1", 191943); -- Primal Weighstone (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q2", 191944); -- Primal Weighstone (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q3", 191945); -- Primal Weighstone (Quality 3)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q1", 191933); -- Primal Whestone (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q2", 191939); -- Primal Whestone (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q3", 191940); -- Primal Whestone (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_SafeRockets_q1", 198160); -- Completely Safe Rockets (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_SafeRockets_q2", 198161); -- Completely Safe Rockets (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_SafeRockets_q3", 198162); -- Completely Safe Rockets (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q1", 194821); -- Buzzing Rune (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q2", 194822); -- Buzzing Rune (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_BuzzingRune_q3", 194823); -- Buzzing Rune (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q1", 194824); -- Chirping Rune (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q2", 194825); -- Chirping Rune (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_ChirpingRune_q3", 194826); -- Chirping Rune (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_HowlingRune_q1", 194821); -- Howling Rune (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_HowlingRune_q2", 194822); -- Howling Rune (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_HowlingRune_q3", 194820); -- Howling Rune (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q1", 191943); -- Primal Weighstone (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q2", 191944); -- Primal Weighstone (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWeighstone_q3", 191945); -- Primal Weighstone (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q1", 191933); -- Primal Whestone (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q2", 191939); -- Primal Whestone (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_PrimalWhetstone_q3", 191940); -- Primal Whestone (Quality 3)
   -- The War Within (groups in ascending item ID order: 222502+ Whetstone, 222505+ Razorstone, 222508+ Weightstone)
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q1", 222502); -- Ironclaw Whetstone (bladed)
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q2", 222503); -- Ironclaw Whetstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q3", 222504); -- Ironclaw Whetstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q1", 222505); -- Ironclaw Razorstone (profession tools)
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q2", 222506); -- Ironclaw Razorstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q3", 222507); -- Ironclaw Razorstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q1", 222508); -- Ironclaw Weightstone (blunt)
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q2", 222509); -- Ironclaw Weightstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q3", 222510); -- Ironclaw Weightstone
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q1", 224108); -- Oil of Beledar's Grace
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q2", 224109); -- Oil of Beledar's Grace
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q3", 224110); -- Oil of Beledar's Grace
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q1", 224111); -- Oil of Deep Toxins
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q2", 224112); -- Oil of Deep Toxins
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q3", 224113); -- Oil of Deep Toxins
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q1", 224105); -- Algari Mana Oil
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q2", 224106); -- Algari Mana Oil
-  GetItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q3", 224107); -- Algari Mana Oil
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q1", 222502); -- Ironclaw Whetstone (bladed)
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q2", 222503); -- Ironclaw Whetstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance1_q3", 222504); -- Ironclaw Whetstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q1", 222505); -- Ironclaw Razorstone (profession tools)
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q2", 222506); -- Ironclaw Razorstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance2_q3", 222507); -- Ironclaw Razorstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q1", 222508); -- Ironclaw Weightstone (blunt)
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q2", 222509); -- Ironclaw Weightstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance3_q3", 222510); -- Ironclaw Weightstone
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q1", 224108); -- Oil of Beledar's Grace
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q2", 224109); -- Oil of Beledar's Grace
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance4_q3", 224110); -- Oil of Beledar's Grace
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q1", 224111); -- Oil of Deep Toxins
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q2", 224112); -- Oil of Deep Toxins
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance5_q3", 224113); -- Oil of Deep Toxins
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q1", 224105); -- Algari Mana Oil
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q2", 224106); -- Algari Mana Oil
+  getItemInfoIfNeeded("SMARTBUFF_TWWWeaponEnhance6_q3", 224107); -- Algari Mana Oil
   -- Midnight weapon enhancements (stones + oils; two qualities each)
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance1_Q1", 237367); -- Refulgent Weightstone Q1
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance1_Q2", 237369); -- Refulgent Weightstone Q2
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance2_Q1", 237370); -- Refulgent Whetstone Q1
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance2_Q2", 237371); -- Refulgent Whetstone Q2
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance3_Q1", 237372); -- Refulgent Razorstone Q1 (profession tools)
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance3_Q2", 237373); -- Refulgent Razorstone Q2 (profession tools)
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance4_Q1", 243733); -- Thalassian Phoenix Oil Q1
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance4_Q2", 243734); -- Thalassian Phoenix Oil Q2
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance5_Q1", 243735); -- Oil of Dawn Q1
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance5_Q2", 243736); -- Oil of Dawn Q2
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance6_Q1", 243737); -- Smuggler's Enchanted Edge Q1
-  GetItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance6_Q2", 243738); -- Smuggler's Enchanted Edge Q2
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance1_Q1", 237367); -- Refulgent Weightstone Q1
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance1_Q2", 237369); -- Refulgent Weightstone Q2
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance2_Q1", 237370); -- Refulgent Whetstone Q1
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance2_Q2", 237371); -- Refulgent Whetstone Q2
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance3_Q1", 237372); -- Refulgent Razorstone Q1 (profession tools)
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance3_Q2", 237373); -- Refulgent Razorstone Q2 (profession tools)
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance4_Q1", 243733); -- Thalassian Phoenix Oil Q1
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance4_Q2", 243734); -- Thalassian Phoenix Oil Q2
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance5_Q1", 243735); -- Oil of Dawn Q1
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance5_Q2", 243736); -- Oil of Dawn Q2
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance6_Q1", 243737); -- Smuggler's Enchanted Edge Q1
+  getItemInfoIfNeeded("SMARTBUFF_MIDNWeaponEnhance6_Q2", 243738); -- Smuggler's Enchanted Edge Q2
 
   -- Well-fed foods: item IDs by expansion (single source of truth). SMARTBUFF_FOOD rows are built in SMARTBUFF_BuildItemTables (60 min each).
   -- relaxInstant: do not drop ids when Instant is nil at login; skipAsync: no mass ContinueOnItemLoad (rows use item:ID). Bag changes still refresh via BAG_UPDATE → SetBuffs.
   -- Trim or comment blocks as you deprecate expansions. Legacy WotLK/CT/MoP/WoD ID lists kept below as comments for reference.
-  S.FoodItems = GetItems({
-    -- Classic / TBC / WotLK (formerly per-item GetItemInfoIfNeeded + SMARTBUFF_FOOD literals)
+  S.FoodItems = getItems({
+    -- Classic / TBC / WotLK (formerly per-item getItemInfoIfNeeded + SMARTBUFF_FOOD literals)
     21217, 22645, 24105, 27635, 27636, 27651, 27655, 27657, 27658, 27659, 27660, 27662, 27663, 27664, 27665, 27666, 27667,
     30155, 31672, 31673, 33052, 33825, 33866, 33867, 33872, 33874, 34411, 35563, 35565,
     -- Legion / Battle for Azeroth
@@ -752,334 +752,334 @@ function SMARTBUFF_InitItemList()
 
   -- Teas: Relaxed buff (separate from well fed; checked by buff name like food). TeaItemIds is source of truth.
   S.TeaItemIds = { 242297, 242298, 242299, 242300, 242301 };
-  S.TeaItems = GetItems(S.TeaItemIds);
+  S.TeaItems = getItems(S.TeaItemIds);
 
   -- Warlock healthstones
-  GetItemInfoIfNeeded("SMARTBUFF_HEALTHSTONE", 5512); --"Healthstone"
-  GetItemInfoIfNeeded("SMARTBUFF_DEMONICHEALTHSTONE", 224464); --"Demonic Healthstone"
-  S.StoneWarlock = GetItems({5512, 224464});
+  getItemInfoIfNeeded("SMARTBUFF_HEALTHSTONE", 5512); --"Healthstone"
+  getItemInfoIfNeeded("SMARTBUFF_DEMONICHEALTHSTONE", 224464); --"Demonic Healthstone"
+  S.StoneWarlock = getItems({5512, 224464});
 
   -- Conjured mage food IDs
-  GetItemInfoIfNeeded("SMARTBUFF_CONJUREDMANA", 113509); --"Conjured Mana Buns"
-  S.FoodMage = GetItems({113509, 80618, 80610, 65499, 43523, 43518, 34062, 65517, 65516, 65515, 65500, 42955});
+  getItemInfoIfNeeded("SMARTBUFF_CONJUREDMANA", 113509); --"Conjured Mana Buns"
+  S.FoodMage = getItems({113509, 80618, 80610, 65499, 43523, 43518, 34062, 65517, 65516, 65515, 65500, 42955});
 
   --_,SMARTBUFF_BCPETFOOD1          = C_Item.GetItemInfo(33874); --"Kibler's Bits (Pet food)"
   --_,SMARTBUFF_WOTLKPETFOOD1       = C_Item.GetItemInfo(43005); --"Spiced Mammoth Treats (Pet food)"
 
-  -- Scroll table: register scroll item vars, then build SMARTBUFF_SCROLL via AddItem(...) below
+  -- Scroll table: register scroll item vars, then build SMARTBUFF_SCROLL via addItem(...) below
   -- Scrolls: Agility, Intellect, Stamina, Spirit, Strength, Protection (I–IX)
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY1", 3012); --"Scroll of Agility I"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY2", 1477); --"Scroll of Agility II"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY3", 4425); --"Scroll of Agility III"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY4", 10309); --"Scroll of Agility IV"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY5", 27498); --"Scroll of Agility V"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY6", 33457); --"Scroll of Agility VI"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY7", 43463); --"Scroll of Agility VII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY8", 43464); --"Scroll of Agility VIII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOAGILITY9", 63303); --"Scroll of Agility IX"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT1", 955); --"Scroll of Intellect I"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT2", 2290); --"Scroll of Intellect II"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT3", 4419); --"Scroll of Intellect III"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT4", 10308); --"Scroll of Intellect IV"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT5", 27499); --"Scroll of Intellect V"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT6", 33458); --"Scroll of Intellect VI"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT7", 37091); --"Scroll of Intellect VII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT8", 37092); --"Scroll of Intellect VIII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOINTELLECT9", 63305); --"Scroll of Intellect IX"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA1", 1180); --"Scroll of Stamina I"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA2", 1711); --"Scroll of Stamina II"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA3", 4422); --"Scroll of Stamina III"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA4", 10307); --"Scroll of Stamina IV"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA5", 27502); --"Scroll of Stamina V"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA6", 33461); --"Scroll of Stamina VI"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA7", 37093); --"Scroll of Stamina VII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA8", 37094); --"Scroll of Stamina VIII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTAMINA9", 63306); --"Scroll of Stamina IX"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT1", 1181); --"Scroll of Spirit I"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT2", 1712); --"Scroll of Spirit II"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT3", 4424); --"Scroll of Spirit III"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT4", 10306); --"Scroll of Spirit IV"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT5", 27501); --"Scroll of Spirit V"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT6", 33460); --"Scroll of Spirit VI"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT7", 37097); --"Scroll of Spirit VII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT8", 37098); --"Scroll of Spirit VIII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSPIRIT9", 63307); --"Scroll of Spirit IX"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT1", 954); --"Scroll of Strength I"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT2", 2289); --"Scroll of Strength II"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT3", 4426); --"Scroll of Strength III"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT4", 10310); --"Scroll of Strength IV"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT5", 27503); --"Scroll of Strength V"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT6", 33462); --"Scroll of Strength VI"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT7", 43465); --"Scroll of Strength VII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT8", 43466); --"Scroll of Strength VIII"
-  GetItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT9", 63304); --"Scroll of Strength IX"
-  GetItemInfoIfNeeded("SMARTBUFF_SOPROTECTION9", 63308); --"Scroll of Protection IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY1", 3012); --"Scroll of Agility I"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY2", 1477); --"Scroll of Agility II"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY3", 4425); --"Scroll of Agility III"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY4", 10309); --"Scroll of Agility IV"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY5", 27498); --"Scroll of Agility V"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY6", 33457); --"Scroll of Agility VI"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY7", 43463); --"Scroll of Agility VII"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY8", 43464); --"Scroll of Agility VIII"
+  getItemInfoIfNeeded("SMARTBUFF_SOAGILITY9", 63303); --"Scroll of Agility IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT1", 955); --"Scroll of Intellect I"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT2", 2290); --"Scroll of Intellect II"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT3", 4419); --"Scroll of Intellect III"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT4", 10308); --"Scroll of Intellect IV"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT5", 27499); --"Scroll of Intellect V"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT6", 33458); --"Scroll of Intellect VI"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT7", 37091); --"Scroll of Intellect VII"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT8", 37092); --"Scroll of Intellect VIII"
+  getItemInfoIfNeeded("SMARTBUFF_SOINTELLECT9", 63305); --"Scroll of Intellect IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA1", 1180); --"Scroll of Stamina I"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA2", 1711); --"Scroll of Stamina II"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA3", 4422); --"Scroll of Stamina III"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA4", 10307); --"Scroll of Stamina IV"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA5", 27502); --"Scroll of Stamina V"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA6", 33461); --"Scroll of Stamina VI"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA7", 37093); --"Scroll of Stamina VII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA8", 37094); --"Scroll of Stamina VIII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTAMINA9", 63306); --"Scroll of Stamina IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT1", 1181); --"Scroll of Spirit I"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT2", 1712); --"Scroll of Spirit II"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT3", 4424); --"Scroll of Spirit III"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT4", 10306); --"Scroll of Spirit IV"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT5", 27501); --"Scroll of Spirit V"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT6", 33460); --"Scroll of Spirit VI"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT7", 37097); --"Scroll of Spirit VII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT8", 37098); --"Scroll of Spirit VIII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSPIRIT9", 63307); --"Scroll of Spirit IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT1", 954); --"Scroll of Strength I"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT2", 2289); --"Scroll of Strength II"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT3", 4426); --"Scroll of Strength III"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT4", 10310); --"Scroll of Strength IV"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT5", 27503); --"Scroll of Strength V"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT6", 33462); --"Scroll of Strength VI"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT7", 43465); --"Scroll of Strength VII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT8", 43466); --"Scroll of Strength VIII"
+  getItemInfoIfNeeded("SMARTBUFF_SOSTRENGHT9", 63304); --"Scroll of Strength IX"
+  getItemInfoIfNeeded("SMARTBUFF_SOPROTECTION9", 63308); --"Scroll of Protection IX"
 
   -- Misc consumables and one-off items (augment runes, toys, etc.; some used in SMARTBUFF_SCROLL)
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem1", 178512); --"Celebration Package"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem2", 44986); --"Warts-B-Gone Lip Balm"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem3", 69775); --"Vrykul Drinking Horn"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem4", 86569); --"Crystal of Insanity"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem5", 85500); --"Anglers Fishing Raft"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem6", 85973); --"Ancient Pandaren Fishing Charm"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem7", 94604); --"Burning Seed"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem9", 92738); --"Safari Hat"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem10", 110424); --"Savage Safari Hat"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem11", 118922); --"Oralius' Whispering Crystal"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem12", 129192); --"Inquisitor's Menacing Eye"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem13", 129210); --"Fel Crystal Fragments"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem14", 128475); --"Empowered Augment Rune"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem15", 128482); --"Empowered Augment Rune"
-  GetItemInfoIfNeeded("SMARTBUFF_MiscItem17", 147707); --"Repurposed Fel Focuser"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem1", 178512); --"Celebration Package"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem2", 44986); --"Warts-B-Gone Lip Balm"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem3", 69775); --"Vrykul Drinking Horn"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem4", 86569); --"Crystal of Insanity"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem5", 85500); --"Anglers Fishing Raft"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem6", 85973); --"Ancient Pandaren Fishing Charm"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem7", 94604); --"Burning Seed"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem9", 92738); --"Safari Hat"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem10", 110424); --"Savage Safari Hat"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem11", 118922); --"Oralius' Whispering Crystal"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem12", 129192); --"Inquisitor's Menacing Eye"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem13", 129210); --"Fel Crystal Fragments"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem14", 128475); --"Empowered Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem15", 128482); --"Empowered Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_MiscItem17", 147707); --"Repurposed Fel Focuser"
   --Shadowlands
-  GetItemInfoIfNeeded("SMARTBUFF_AugmentRune", 190384); --"Eternal Augment Rune"
-  GetItemInfoIfNeeded("SMARTBUFF_VieledAugment", 181468); --"Veiled Augment Rune"
-  GetItemInfoIfNeeded("SMARTBUFF_DreamAugmentRune", 211495); --"Dreambound Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_AugmentRune", 190384); --"Eternal Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_VieledAugment", 181468); --"Veiled Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_DreamAugmentRune", 211495); --"Dreambound Augment Rune"
 
   --Dragonflight
-  GetItemInfoIfNeeded("SMARTBUFF_DraconicRune", 201325); -- Draconic Augment Rune
-  GetItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q1", 198491); -- Vantus Rune: Vault of the Incarnates (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q2", 198492); -- Vantus Rune: Vault of the Incarnates (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q3", 198493); -- Vantus Rune: Vault of the Incarnates (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_DraconicRune", 201325); -- Draconic Augment Rune
+  getItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q1", 198491); -- Vantus Rune: Vault of the Incarnates (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q2", 198492); -- Vantus Rune: Vault of the Incarnates (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_VantusRune_VotI_q3", 198493); -- Vantus Rune: Vault of the Incarnates (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTBC1", 22854); --"Flask of Relentless Assault"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTBC2", 22866); --"Flask of Pure Death"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTBC3", 22851); --"Flask of Fortification"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTBC4", 22861); --"Flask of Blinding Light"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTBC5", 22853); --"Flask of Mighty Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASK1", 46377); --"Flask of Endless Rage"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASK2", 46376); --"Flask of the Frost Wyrm"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASK3", 46379); --"Flask of Stoneblood"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASK4", 46378); --"Flask of Pure Mojo"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT1", 58087); --"Flask of the Winds"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT2", 58088); --"Flask of Titanic Strength"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT3", 58086); --"Flask of the Draconic Mind"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT4", 58085); --"Flask of Steelskin"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT5", 67438); --"Flask of Flowing Water"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKCT7", 65455); --"Flask of Battle"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP1", 75525); --"Alchemist's Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP2", 76087); --"Flask of the Earth"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP3", 76086); --"Flask of Falling Leaves"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP4", 76084); --"Flask of Spring Blossoms"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP5", 76085); --"Flask of the Warm Sun"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMOP6", 76088); --"Flask of Winter's Bite"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKWOD1", 109152); --"Draenic Stamina Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKWOD2", 109148); --"Draenic Strength Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKWOD3", 109147); --"Draenic Intellect Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKWOD4", 109145); --"Draenic Agility Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD1", 109160); --"Greater Draenic Stamina Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD2", 109156); --"Greater Draenic Strength Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD3", 109155); --"Greater Draenic Intellect Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD4", 109153); --"Greater Draenic Agility Flask"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKLEG1", 127850); --"Flask of Ten Thousand Scars"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKLEG2", 127849); --"Flask of the Countless Armies"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKLEG3", 127847); --"Flask of the Whispered Pact"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKLEG4", 127848); --"Flask of the Seventh Demon"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKBFA1", 152639); --"Flask of Endless Fathoms"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKBFA2", 152638); --"Flask of the Currents"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKBFA3", 152641); --"Flask of the Undertow"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKBFA4", 152640); --"Flask of the Vast Horizon"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA1", 168652); --"Greather Flask of Endless Fathoms"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA2", 168651); --"Greater Flask of the Currents"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA3", 168654); --"Greather Flask of teh Untertow"
-  GetItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA4", 168653); --"Greater Flask of the Vast Horizon"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKSL1", 171276); --"Spectral Flask of Power"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKSL2", 171278); --"Spectral Flask of Stamina"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTBC1", 22854); --"Flask of Relentless Assault"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTBC2", 22866); --"Flask of Pure Death"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTBC3", 22851); --"Flask of Fortification"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTBC4", 22861); --"Flask of Blinding Light"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTBC5", 22853); --"Flask of Mighty Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASK1", 46377); --"Flask of Endless Rage"
+  getItemInfoIfNeeded("SMARTBUFF_FLASK2", 46376); --"Flask of the Frost Wyrm"
+  getItemInfoIfNeeded("SMARTBUFF_FLASK3", 46379); --"Flask of Stoneblood"
+  getItemInfoIfNeeded("SMARTBUFF_FLASK4", 46378); --"Flask of Pure Mojo"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT1", 58087); --"Flask of the Winds"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT2", 58088); --"Flask of Titanic Strength"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT3", 58086); --"Flask of the Draconic Mind"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT4", 58085); --"Flask of Steelskin"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT5", 67438); --"Flask of Flowing Water"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKCT7", 65455); --"Flask of Battle"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP1", 75525); --"Alchemist's Flask"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP2", 76087); --"Flask of the Earth"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP3", 76086); --"Flask of Falling Leaves"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP4", 76084); --"Flask of Spring Blossoms"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP5", 76085); --"Flask of the Warm Sun"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMOP6", 76088); --"Flask of Winter's Bite"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKWOD1", 109152); --"Draenic Stamina Flask"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKWOD2", 109148); --"Draenic Strength Flask"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKWOD3", 109147); --"Draenic Intellect Flask"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKWOD4", 109145); --"Draenic Agility Flask"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD1", 109160); --"Greater Draenic Stamina Flask"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD2", 109156); --"Greater Draenic Strength Flask"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD3", 109155); --"Greater Draenic Intellect Flask"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKWOD4", 109153); --"Greater Draenic Agility Flask"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKLEG1", 127850); --"Flask of Ten Thousand Scars"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKLEG2", 127849); --"Flask of the Countless Armies"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKLEG3", 127847); --"Flask of the Whispered Pact"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKLEG4", 127848); --"Flask of the Seventh Demon"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKBFA1", 152639); --"Flask of Endless Fathoms"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKBFA2", 152638); --"Flask of the Currents"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKBFA3", 152641); --"Flask of the Undertow"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKBFA4", 152640); --"Flask of the Vast Horizon"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA1", 168652); --"Greather Flask of Endless Fathoms"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA2", 168651); --"Greater Flask of the Currents"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA3", 168654); --"Greather Flask of teh Untertow"
+  getItemInfoIfNeeded("SMARTBUFF_GRFLASKBFA4", 168653); --"Greater Flask of the Vast Horizon"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKSL1", 171276); --"Spectral Flask of Power"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKSL2", 171278); --"Spectral Flask of Stamina"
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q1", 191318); -- Phial of the Eye in the Storm (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q2", 191319); -- Phial of the Eye in the Storm (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q3", 191320); -- Phial of the Eye in the Storm (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q1", 191318); -- Phial of the Eye in the Storm (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q2", 191319); -- Phial of the Eye in the Storm (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF1_q3", 191320); -- Phial of the Eye in the Storm (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q1", 191321); -- Phial of Still Air (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q2", 191322); -- Phial of Still Air (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q3", 191323); -- Phial of Still Air (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q1", 191321); -- Phial of Still Air (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q2", 191322); -- Phial of Still Air (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF2_q3", 191323); -- Phial of Still Air (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q1", 191324); -- Phial of Icy Preservation (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q2", 191325); -- Phial of Icy Preservation (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q3", 191326); -- Phial of Icy Preservation (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q1", 191324); -- Phial of Icy Preservation (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q2", 191325); -- Phial of Icy Preservation (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF3_q3", 191326); -- Phial of Icy Preservation (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q1", 191327); -- Iced Phial of Corrupting Rage (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q2", 191328); -- Iced Phial of Corrupting Rage (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q3", 191329); -- Iced Phial of Corrupting Rage (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q1", 191327); -- Iced Phial of Corrupting Rage (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q2", 191328); -- Iced Phial of Corrupting Rage (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF4_q3", 191329); -- Iced Phial of Corrupting Rage (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q1", 191330); -- Phial of Charged Isolation (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q2", 191331); -- Phial of Charged Isolation (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q3", 191332); -- Phial of Charged Isolation (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q1", 191330); -- Phial of Charged Isolation (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q2", 191331); -- Phial of Charged Isolation (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF5_q3", 191332); -- Phial of Charged Isolation (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q1", 191333); -- Phial of Glacial Fury (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q2", 191334); -- Phial of Glacial Fury (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q3", 191335); -- Phial of Glacial Fury (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q1", 191333); -- Phial of Glacial Fury (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q2", 191334); -- Phial of Glacial Fury (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF6_q3", 191335); -- Phial of Glacial Fury (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q1", 191336); -- Phial of Static Empowerment (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q2", 191337); -- Phial of Static Empowerment (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q3", 191338); -- Phial of Static Empowerment (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q1", 191336); -- Phial of Static Empowerment (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q2", 191337); -- Phial of Static Empowerment (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF7_q3", 191338); -- Phial of Static Empowerment (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q1", 191339); -- Phial of Tepid Versatility (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q2", 191340); -- Phial of Tepid Versatility (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q3", 191341); -- Phial of Tepid Versatility (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q1", 191339); -- Phial of Tepid Versatility (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q2", 191340); -- Phial of Tepid Versatility (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF8_q3", 191341); -- Phial of Tepid Versatility (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q1", 191342); -- Aerated Phial of Deftness (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q2", 191343); -- Aerated Phial of Deftness (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q3", 191344); -- Aerated Phial of Deftness (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q1", 191342); -- Aerated Phial of Deftness (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q2", 191343); -- Aerated Phial of Deftness (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF9_q3", 191344); -- Aerated Phial of Deftness (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q1", 191345); -- Steaming Phial of Finesse (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q2", 191346); -- Steaming Phial of Finesse (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q3", 191347); -- Steaming Phial of Finesse (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q1", 191345); -- Steaming Phial of Finesse (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q2", 191346); -- Steaming Phial of Finesse (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF10_q3", 191347); -- Steaming Phial of Finesse (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q1", 191348); -- Charged Phial of Alacrity (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q2", 191349); -- Charged Phial of Alacrity (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q3", 191350); -- Charged Phial of Alacrity (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q1", 191348); -- Charged Phial of Alacrity (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q2", 191349); -- Charged Phial of Alacrity (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF11_q3", 191350); -- Charged Phial of Alacrity (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q1", 191354); -- Crystalline Phial of Perception (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q2", 191355); -- Crystalline Phial of Perception (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q3", 191356); -- Crystalline Phial of Perception (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q1", 191354); -- Crystalline Phial of Perception (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q2", 191355); -- Crystalline Phial of Perception (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF12_q3", 191356); -- Crystalline Phial of Perception (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q1", 191357); -- Phial of Elemental Chaos (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q2", 191358); -- Phial of Elemental Chaos (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q3", 191359); -- Phial of Elemental Chaos (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q1", 191357); -- Phial of Elemental Chaos (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q2", 191358); -- Phial of Elemental Chaos (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF13_q3", 191359); -- Phial of Elemental Chaos (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q1", 197720); -- Aerated Phial of Quick Hands (Quality 1)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q2", 197721); -- Aerated Phial of Quick Hands (Quality 2)
-  GetItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q3", 197722); -- Aerated Phial of Quick Hands (Quality 3)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q1", 197720); -- Aerated Phial of Quick Hands (Quality 1)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q2", 197721); -- Aerated Phial of Quick Hands (Quality 2)
+  getItemInfoIfNeeded("SMARTBUFF_FlaskDF14_q3", 197722); -- Aerated Phial of Quick Hands (Quality 3)
 
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC1", 22831); --"Elixir of Major Agility"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC2", 28104); --"Elixir of Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC3", 22825); --"Elixir of Healing Power"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC4", 22834); --"Elixir of Major Defense"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC5", 22824); --"Elixir of Major Strangth"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC6", 32062); --"Elixir of Major Fortitude"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC7", 22840); --"Elixir of Major Mageblood"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC8", 32067); --"Elixir of Draenic Wisdom"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC9", 28103); --"Adept's Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC10", 22848); --"Elixir of Empowerment"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC11", 28102); --"Onslaught Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC12", 22835); --"Elixir of Major Shadow Power"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC13", 32068); --"Elixir of Ironskin"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC14", 32063); --"Earthen Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC15", 22827); --"Elixir of Major Frost Power"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC16", 31679); --"Fel Strength Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC17", 22833); --"Elixir of Major Firepower"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR1", 39666); --"Elixir of Mighty Agility"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR2", 44332); --"Elixir of Mighty Thoughts"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR3", 40078); --"Elixir of Mighty Fortitude"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR4", 40073); --"Elixir of Mighty Strength"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR5", 40072); --"Elixir of Spirit"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR6", 40097); --"Elixir of Protection"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR7", 44328); --"Elixir of Mighty Defense"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR8", 44331); --"Elixir of Lightning Speed"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR9", 44329); --"Elixir of Expertise"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR10", 44327); --"Elixir of Deadly Strikes"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR11", 44330); --"Elixir of Armor Piercing"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR12", 44325); --"Elixir of Accuracy"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR13", 40076); --"Guru's Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR14", 9187); --"Elixir of Greater Agility"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR15", 28103); --"Adept's Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIR16", 40070); --"Spellpower Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT1", 58148); --"Elixir of the Master"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT2", 58144); --"Elixir of Mighty Speed"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT3", 58094); --"Elixir of Impossible Accuracy"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT4", 58143); --"Prismatic Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT5", 58093); --"Elixir of Deep Earth"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT6", 58092); --"Elixir of the Cobra"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT7", 58089); --"Elixir of the Naga"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRCT8", 58084); --"Ghost Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP1", 76081); --"Elixir of Mirrors"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP2", 76079); --"Elixir of Peace"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP3", 76080); --"Elixir of Perfection"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP4", 76078); --"Elixir of the Rapids"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP5", 76077); --"Elixir of Weaponry"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP6", 76076); --"Mad Hozen Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP7", 76075); --"Mantid Elixir"
-  GetItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP8", 76083); --"Monk's Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC1", 22831); --"Elixir of Major Agility"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC2", 28104); --"Elixir of Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC3", 22825); --"Elixir of Healing Power"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC4", 22834); --"Elixir of Major Defense"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC5", 22824); --"Elixir of Major Strangth"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC6", 32062); --"Elixir of Major Fortitude"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC7", 22840); --"Elixir of Major Mageblood"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC8", 32067); --"Elixir of Draenic Wisdom"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC9", 28103); --"Adept's Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC10", 22848); --"Elixir of Empowerment"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC11", 28102); --"Onslaught Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC12", 22835); --"Elixir of Major Shadow Power"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC13", 32068); --"Elixir of Ironskin"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC14", 32063); --"Earthen Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC15", 22827); --"Elixir of Major Frost Power"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC16", 31679); --"Fel Strength Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRTBC17", 22833); --"Elixir of Major Firepower"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR1", 39666); --"Elixir of Mighty Agility"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR2", 44332); --"Elixir of Mighty Thoughts"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR3", 40078); --"Elixir of Mighty Fortitude"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR4", 40073); --"Elixir of Mighty Strength"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR5", 40072); --"Elixir of Spirit"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR6", 40097); --"Elixir of Protection"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR7", 44328); --"Elixir of Mighty Defense"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR8", 44331); --"Elixir of Lightning Speed"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR9", 44329); --"Elixir of Expertise"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR10", 44327); --"Elixir of Deadly Strikes"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR11", 44330); --"Elixir of Armor Piercing"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR12", 44325); --"Elixir of Accuracy"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR13", 40076); --"Guru's Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR14", 9187); --"Elixir of Greater Agility"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR15", 28103); --"Adept's Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIR16", 40070); --"Spellpower Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT1", 58148); --"Elixir of the Master"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT2", 58144); --"Elixir of Mighty Speed"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT3", 58094); --"Elixir of Impossible Accuracy"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT4", 58143); --"Prismatic Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT5", 58093); --"Elixir of Deep Earth"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT6", 58092); --"Elixir of the Cobra"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT7", 58089); --"Elixir of the Naga"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRCT8", 58084); --"Ghost Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP1", 76081); --"Elixir of Mirrors"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP2", 76079); --"Elixir of Peace"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP3", 76080); --"Elixir of Perfection"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP4", 76078); --"Elixir of the Rapids"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP5", 76077); --"Elixir of Weaponry"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP6", 76076); --"Mad Hozen Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP7", 76075); --"Mantid Elixir"
+  getItemInfoIfNeeded("SMARTBUFF_ELIXIRMOP8", 76083); --"Monk's Elixir"
 
 -- TWW
   -- Consumables
-  GetItemInfoIfNeeded("SMARTBUFF_TWWCrystalAugRune1", 224572); --"Crystallized Augment Rune"
-  GetItemInfoIfNeeded("SMARTBUFF_TWWEtherealAugRune", 243191); --"Ethereal Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_TWWCrystalAugRune1", 224572); --"Crystallized Augment Rune"
+  getItemInfoIfNeeded("SMARTBUFF_TWWEtherealAugRune", 243191); --"Ethereal Augment Rune"
   -- Midnight
-  GetItemInfoIfNeeded("SMARTBUFF_MidnightVoidAugRune", 259085); --Void-Touched Augment Rune
+  getItemInfoIfNeeded("SMARTBUFF_MidnightVoidAugRune", 259085); --Void-Touched Augment Rune
 
   -- Flasks and phials
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q1", 212269); --"Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q2", 212270); --"Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q3", 212271); --"Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q1", 212272); --"Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q2", 212273); --"Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q3", 212274); --"Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q1", 212275); --"Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q2", 212276); --"Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q3", 212277); --"Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q1", 212278); --"Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q2", 212279); --"Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q3", 212280); --"Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q1", 212281); --"Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q2", 212282); --"Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q3", 212283); --"Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_1", 212289); --"Vicious Flask of Classical Spirits"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_2", 212292); --"Vicious Flask of Honor"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_3", 212295); --"Vicious Flask of Manifested Fury"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_4", 212298); --"Vicious Flask of the Wrecking Ball"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q1", 212299); --"Flask of Saving Graces"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q2", 212300); --"Flask of Saving Graces"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q3", 212301); --"Flask of Saving Graces"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q1", 212305); --"Phial of Concentrated Ingenuity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q2", 212306); --"Phial of Concentrated Ingenuity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q3", 212307); --"Phial of Concentrated Ingenuity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q1", 212308); --"Phial of Truesight"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q2", 212309); --"Phial of Truesight"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q3", 212310); --"Phial of Truesight"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q1", 212311); --"Phial of Enhanced Ambidexterity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q2", 212312); --"Phial of Enhanced Ambidexterity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q3", 212313); --"Phial of Enhanced Ambidexterity"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q1", 212314); --"Phial of Bountiful Seasons"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q2", 212315); --"Phial of Bountiful Seasons"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q3", 212316); --"Phial of Bountiful Seasons"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q1", 212725); --"Fleeting Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q2", 212727); --"Fleeting Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q3", 212728); --"Fleeting Flask of Tempered Aggression"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q1", 212729); --"Fleeting Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q2", 212730); --"Fleeting Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q3", 212731); --"Fleeting Flask of Tempered Swiftness"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q1", 212732); --"Fleeting Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q2", 212733); --"Fleeting Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q3", 212734); --"Fleeting Flask of Tempered Versatility"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q1", 212735); --"Fleeting Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q2", 212736); --"Fleeting Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q3", 212738); --"Fleeting Flask of Tempered Mastery"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q1", 212739); --"Fleeting Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q2", 212740); --"Fleeting Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q3", 212741); --"Fleeting Flask of Alchemical Chaos"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q1", 212745); --"Fleeting Flask of Saving Graces"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q2", 212746); --"Fleeting Flask of Saving Graces"
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q3", 212747); --"Fleeting Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q1", 212269); --"Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q2", 212270); --"Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW1_Q3", 212271); --"Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q1", 212272); --"Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q2", 212273); --"Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW2_Q3", 212274); --"Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q1", 212275); --"Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q2", 212276); --"Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW3_Q3", 212277); --"Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q1", 212278); --"Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q2", 212279); --"Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW4_Q3", 212280); --"Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q1", 212281); --"Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q2", 212282); --"Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW5_Q3", 212283); --"Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_1", 212289); --"Vicious Flask of Classical Spirits"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_2", 212292); --"Vicious Flask of Honor"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_3", 212295); --"Vicious Flask of Manifested Fury"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWWPvP_4", 212298); --"Vicious Flask of the Wrecking Ball"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q1", 212299); --"Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q2", 212300); --"Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW6_Q3", 212301); --"Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q1", 212305); --"Phial of Concentrated Ingenuity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q2", 212306); --"Phial of Concentrated Ingenuity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW7_Q3", 212307); --"Phial of Concentrated Ingenuity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q1", 212308); --"Phial of Truesight"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q2", 212309); --"Phial of Truesight"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW8_Q3", 212310); --"Phial of Truesight"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q1", 212311); --"Phial of Enhanced Ambidexterity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q2", 212312); --"Phial of Enhanced Ambidexterity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW9_Q3", 212313); --"Phial of Enhanced Ambidexterity"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q1", 212314); --"Phial of Bountiful Seasons"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q2", 212315); --"Phial of Bountiful Seasons"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW10_Q3", 212316); --"Phial of Bountiful Seasons"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q1", 212725); --"Fleeting Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q2", 212727); --"Fleeting Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW11_Q3", 212728); --"Fleeting Flask of Tempered Aggression"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q1", 212729); --"Fleeting Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q2", 212730); --"Fleeting Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW12_Q3", 212731); --"Fleeting Flask of Tempered Swiftness"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q1", 212732); --"Fleeting Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q2", 212733); --"Fleeting Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW13_Q3", 212734); --"Fleeting Flask of Tempered Versatility"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q1", 212735); --"Fleeting Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q2", 212736); --"Fleeting Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW14_Q3", 212738); --"Fleeting Flask of Tempered Mastery"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q1", 212739); --"Fleeting Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q2", 212740); --"Fleeting Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW15_Q3", 212741); --"Fleeting Flask of Alchemical Chaos"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q1", 212745); --"Fleeting Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q2", 212746); --"Fleeting Flask of Saving Graces"
+  getItemInfoIfNeeded("SMARTBUFF_FLASKTWW16_Q3", 212747); --"Fleeting Flask of Saving Graces"
   -- Midnight phials and flasks (silver Q1, gold Q2; same buff per pair)
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN1_Q1", 241310); -- Haranir Phial of Finesse
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN1_Q2", 241311); -- Haranir Phial of Finesse
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN2_Q1", 241312); -- Haranir Phial of Ingenuity
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN2_Q2", 241313); -- Haranir Phial of Ingenuity
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN3_Q1", 241316); -- Haranir Phial of Perception
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN3_Q2", 241317); -- Haranir Phial of Perception
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN4_Q1", 241320); -- Flask of Thalassian Resistance
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN4_Q2", 241321); -- Flask of Thalassian Resistance
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN5_Q1", 241322); -- Flask of the Magisters
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN5_Q2", 241323); -- Flask of the Magisters
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN6_Q1", 241324); -- Flask of the Blood Knights
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN6_Q2", 241325); -- Flask of the Blood Knights
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN7_Q1", 241326); -- Flask of the Shattered Sun
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN7_Q2", 241327); -- Flask of the Shattered Sun
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN8", 241334); -- Vicious Thalassian Flask of Honor
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN1_Q1", 241310); -- Haranir Phial of Finesse
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN1_Q2", 241311); -- Haranir Phial of Finesse
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN2_Q1", 241312); -- Haranir Phial of Ingenuity
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN2_Q2", 241313); -- Haranir Phial of Ingenuity
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN3_Q1", 241316); -- Haranir Phial of Perception
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN3_Q2", 241317); -- Haranir Phial of Perception
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN4_Q1", 241320); -- Flask of Thalassian Resistance
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN4_Q2", 241321); -- Flask of Thalassian Resistance
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN5_Q1", 241322); -- Flask of the Magisters
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN5_Q2", 241323); -- Flask of the Magisters
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN6_Q1", 241324); -- Flask of the Blood Knights
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN6_Q2", 241325); -- Flask of the Blood Knights
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN7_Q1", 241326); -- Flask of the Shattered Sun
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN7_Q2", 241327); -- Flask of the Shattered Sun
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN8", 241334); -- Vicious Thalassian Flask of Honor
   -- Midnight fleeting flasks (same 4 buffs as main flasks; 60 min)
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN9_Q1", 245926);  -- Fleeting Flask of Thalassian Resistance
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN9_Q2", 245927);  -- Fleeting Flask of Thalassian Resistance
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN10_Q1", 245932); -- Fleeting Flask of the Magisters
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN10_Q2", 245933); -- Fleeting Flask of the Magisters
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN11_Q1", 245930); -- Fleeting Flask of the Blood Knights
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN11_Q2", 245931); -- Fleeting Flask of the Blood Knights
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN12_Q1", 245928); -- Fleeting Flask of the Shattered Sun
-  GetItemInfoIfNeeded("SMARTBUFF_FLASKMIDN12_Q2", 245929); -- Fleeting Flask of the Shattered Sun
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN9_Q1", 245926);  -- Fleeting Flask of Thalassian Resistance
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN9_Q2", 245927);  -- Fleeting Flask of Thalassian Resistance
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN10_Q1", 245932); -- Fleeting Flask of the Magisters
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN10_Q2", 245933); -- Fleeting Flask of the Magisters
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN11_Q1", 245930); -- Fleeting Flask of the Blood Knights
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN11_Q2", 245931); -- Fleeting Flask of the Blood Knights
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN12_Q1", 245928); -- Fleeting Flask of the Shattered Sun
+  getItemInfoIfNeeded("SMARTBUFF_FLASKMIDN12_Q2", 245929); -- Fleeting Flask of the Shattered Sun
 
   -- Draught of Ten Lands (consumable)
-  GetItemInfoIfNeeded("SMARTBUFF_EXP_POTION", 166750); --"Draught of Ten Lands"
+  getItemInfoIfNeeded("SMARTBUFF_EXP_POTION", 166750); --"Draught of Ten Lands"
 
   -- Fishing pole: S.FishingPole for CHECKFISHINGPOLE (special case: 7th return from GetItemInfo)
   if (S.FishingPole == nil) then
@@ -1103,91 +1103,91 @@ function SMARTBUFF_InitSpellIDs()
   SMARTBUFF_LoadBuffRelationsCache();
 
   -- Only call API if variable is not already set (optimization: skip if already loaded and verified)
-  GetSpellInfoIfNeeded("SMARTBUFF_TESTSPELL", 774, isSpellBookBuff );
+  getSpellInfoIfNeeded("SMARTBUFF_TESTSPELL", 774, isSpellBookBuff );
 
   -- Druid
-  GetSpellInfoIfNeeded("SMARTBUFF_DRUID_CAT", 768, isSpellBookBuff); --"Cat Form"
-  GetSpellInfoIfNeeded("SMARTBUFF_DRUID_TREE", 33891, isSpellBookBuff); --"Incarnation: Tree of Life"
-  GetSpellInfoIfNeeded("SMARTBUFF_DRUID_TREANT", 114282, isSpellBookBuff); --"Treant Form"
-  GetSpellInfoIfNeeded("SMARTBUFF_DRUID_MOONKIN", 24858, isSpellBookBuff); --"Moonkin Form"
-  GetSpellInfoIfNeeded("SMARTBUFF_DRUID_BEAR", 5487, isSpellBookBuff); --"Bear Form"
-  GetSpellInfoIfNeeded("SMARTBUFF_MOTW", 1126, isSpellBookBuff); --"Mark of the Wild"
-  GetSpellInfoIfNeeded("SMARTBUFF_BARKSKIN", 22812, isSpellBookBuff); --"Barkskin"
-  GetSpellInfoIfNeeded("SMARTBUFF_TIGERSFURY", 5217, isSpellBookBuff); --"Tiger's Fury"
+  getSpellInfoIfNeeded("SMARTBUFF_DRUID_CAT", 768, isSpellBookBuff); --"Cat Form"
+  getSpellInfoIfNeeded("SMARTBUFF_DRUID_TREE", 33891, isSpellBookBuff); --"Incarnation: Tree of Life"
+  getSpellInfoIfNeeded("SMARTBUFF_DRUID_TREANT", 114282, isSpellBookBuff); --"Treant Form"
+  getSpellInfoIfNeeded("SMARTBUFF_DRUID_MOONKIN", 24858, isSpellBookBuff); --"Moonkin Form"
+  getSpellInfoIfNeeded("SMARTBUFF_DRUID_BEAR", 5487, isSpellBookBuff); --"Bear Form"
+  getSpellInfoIfNeeded("SMARTBUFF_MOTW", 1126, isSpellBookBuff); --"Mark of the Wild"
+  getSpellInfoIfNeeded("SMARTBUFF_BARKSKIN", 22812, isSpellBookBuff); --"Barkskin"
+  getSpellInfoIfNeeded("SMARTBUFF_TIGERSFURY", 5217, isSpellBookBuff); --"Tiger's Fury"
 
   -- Priest
-  GetSpellInfoIfNeeded("SMARTBUFF_PWF", 21562, isSpellBookBuff); --"Power Word: Fortitude"
-  GetSpellInfoIfNeeded("SMARTBUFF_PWS", 17, isSpellBookBuff); --"Power Word: Shield"
-  GetSpellInfoIfNeeded("SMARTBUFF_LEVITATE", 1706, isSpellBookBuff); --"Levitate"
-  GetSpellInfoIfNeeded("SMARTBUFF_SHADOWFORM", 232698, isSpellBookBuff); --"Shadowform"
-  GetSpellInfoIfNeeded("SMARTBUFF_VAMPIRICEMBRACE", 15286, isSpellBookBuff); --"Vampiric Embrace"
+  getSpellInfoIfNeeded("SMARTBUFF_PWF", 21562, isSpellBookBuff); --"Power Word: Fortitude"
+  getSpellInfoIfNeeded("SMARTBUFF_PWS", 17, isSpellBookBuff); --"Power Word: Shield"
+  getSpellInfoIfNeeded("SMARTBUFF_LEVITATE", 1706, isSpellBookBuff); --"Levitate"
+  getSpellInfoIfNeeded("SMARTBUFF_SHADOWFORM", 232698, isSpellBookBuff); --"Shadowform"
+  getSpellInfoIfNeeded("SMARTBUFF_VAMPIRICEMBRACE", 15286, isSpellBookBuff); --"Vampiric Embrace"
   -- Priest buff links
   --S.LinkPriestChakra        = { SMARTBUFF_CHAKRA1, SMARTBUFF_CHAKRA2, SMARTBUFF_CHAKRA3 };
 
   -- Mage
-  GetSpellInfoIfNeeded("SMARTBUFF_AB", 1459, isSpellBookBuff); --"Arcane Intellect"
-  GetSpellInfoIfNeeded("SMARTBUFF_ICEBARRIER", 11426, isSpellBookBuff); --"Ice Barrier"
-  GetSpellInfoIfNeeded("SMARTBUFF_COMBUSTION", 190319, isSpellBookBuff); --"Combustion"
-  GetSpellInfoIfNeeded("SMARTBUFF_PRESENCEOFMIND", 205025, isSpellBookBuff); --"Presence of Mind"
-  GetSpellInfoIfNeeded("SMARTBUFF_SLOWFALL", 130, isSpellBookBuff); --"Slow Fall"
-  GetSpellInfoIfNeeded("SMARTBUFF_REFRESHMENT", 190336, isSpellBookBuff); --"Conjure Refreshment"
-  GetSpellInfoIfNeeded("SMARTBUFF_PRISBARRIER", 235450, isSpellBookBuff); --"Prismatic Barrier"
-  GetSpellInfoIfNeeded("SMARTBUFF_BLAZBARRIER", 235313, isSpellBookBuff); --"Blazing Barrier"
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONWATERELELEMENTAL", 31687, isSpellBookBuff); -- Summon Water Elemental
+  getSpellInfoIfNeeded("SMARTBUFF_AB", 1459, isSpellBookBuff); --"Arcane Intellect"
+  getSpellInfoIfNeeded("SMARTBUFF_ICEBARRIER", 11426, isSpellBookBuff); --"Ice Barrier"
+  getSpellInfoIfNeeded("SMARTBUFF_COMBUSTION", 190319, isSpellBookBuff); --"Combustion"
+  getSpellInfoIfNeeded("SMARTBUFF_PRESENCEOFMIND", 205025, isSpellBookBuff); --"Presence of Mind"
+  getSpellInfoIfNeeded("SMARTBUFF_SLOWFALL", 130, isSpellBookBuff); --"Slow Fall"
+  getSpellInfoIfNeeded("SMARTBUFF_REFRESHMENT", 190336, isSpellBookBuff); --"Conjure Refreshment"
+  getSpellInfoIfNeeded("SMARTBUFF_PRISBARRIER", 235450, isSpellBookBuff); --"Prismatic Barrier"
+  getSpellInfoIfNeeded("SMARTBUFF_BLAZBARRIER", 235313, isSpellBookBuff); --"Blazing Barrier"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONWATERELELEMENTAL", 31687, isSpellBookBuff); -- Summon Water Elemental
 
   -- Mage buff links
  -- S.ChainMageArmor = { SMARTBUFF_FROSTARMOR, SMARTBUFF_MAGEARMOR, SMARTBUFF_MOLTENARMOR };
 
   -- Warlock
-  GetSpellInfoIfNeeded("SMARTBUFF_UNENDINGBREATH", 5697, isSpellBookBuff); --"Unending Breath"
-  GetSpellInfoIfNeeded("SMARTBUFF_LIFETAP", 1454, isSpellBookBuff); --"Life Tap"
-  GetSpellInfoIfNeeded("SMARTBUFF_CREATEHS", 6201, isSpellBookBuff); --"Create Healthstone" (creates either regular or demonic based on talents)
-  GetSpellInfoIfNeeded("SMARTBUFF_CREATEHSWELL", 29893, isSpellBookBuff); --"Create Soulwell"
-  GetSpellInfoIfNeeded("SMARTBUFF_SOULSTONE", 20707, isSpellBookBuff); --"Soulstone"
-  GetSpellInfoIfNeeded("SMARTBUFF_GOSACRIFICE", 108503, isSpellBookBuff); --"Grimoire of Sacrifice"
+  getSpellInfoIfNeeded("SMARTBUFF_UNENDINGBREATH", 5697, isSpellBookBuff); --"Unending Breath"
+  getSpellInfoIfNeeded("SMARTBUFF_LIFETAP", 1454, isSpellBookBuff); --"Life Tap"
+  getSpellInfoIfNeeded("SMARTBUFF_CREATEHS", 6201, isSpellBookBuff); --"Create Healthstone" (creates either regular or demonic based on talents)
+  getSpellInfoIfNeeded("SMARTBUFF_CREATEHSWELL", 29893, isSpellBookBuff); --"Create Soulwell"
+  getSpellInfoIfNeeded("SMARTBUFF_SOULSTONE", 20707, isSpellBookBuff); --"Soulstone"
+  getSpellInfoIfNeeded("SMARTBUFF_GOSACRIFICE", 108503, isSpellBookBuff); --"Grimoire of Sacrifice"
   -- Warlock pets
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONIMP", 688, isSpellBookBuff); --"Summon Imp"
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONFELHUNTER", 691, isSpellBookBuff); --"Summon Fellhunter"
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONVOIDWALKER", 697, isSpellBookBuff); --"Summon Voidwalker"
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONSUCCUBUS", 366222, isSpellBookBuff); --"Summon Succubus/Incubus"
-  GetSpellInfoIfNeeded("SMARTBUFF_SUMMONFELGUARD", 30146, isSpellBookBuff); --"Summon Felguard"
-  GetSpellInfoIfNeeded("SMARTBUFF_DEMONICTYRANT", 265187, isSpellBookBuff); --"Summon Demonic Tyrant"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONIMP", 688, isSpellBookBuff); --"Summon Imp"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONFELHUNTER", 691, isSpellBookBuff); --"Summon Fellhunter"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONVOIDWALKER", 697, isSpellBookBuff); --"Summon Voidwalker"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONSUCCUBUS", 366222, isSpellBookBuff); --"Summon Succubus/Incubus"
+  getSpellInfoIfNeeded("SMARTBUFF_SUMMONFELGUARD", 30146, isSpellBookBuff); --"Summon Felguard"
+  getSpellInfoIfNeeded("SMARTBUFF_DEMONICTYRANT", 265187, isSpellBookBuff); --"Summon Demonic Tyrant"
 
   -- Hunter
 --  SMARTBUFF_TRUESHOTAURA    = getSpellBookItemByName(288613); --"Trueshot Aura" (P) -- candidate for deletion (spell doesn't exist in retail WoW)
-  GetSpellInfoIfNeeded("SMARTBUFF_VOLLEY", 260243, isSpellBookBuff); --"Volley"
-  GetSpellInfoIfNeeded("SMARTBUFF_RAPIDFIRE", 257044, isSpellBookBuff); --"Rapid Fire"
-  GetSpellInfoIfNeeded("SMARTBUFF_AOTC", 186257, isSpellBookBuff); --"Aspect of the Cheetah"
-  GetSpellInfoIfNeeded("SMARTBUFF_AOTW", 193530, isSpellBookBuff); --"Aspect of the Wild"
-  GetSpellInfoIfNeeded("SMARTBUFF_AOTE", 186289, isSpellBookBuff); --"Aspect of the Eagle"
+  getSpellInfoIfNeeded("SMARTBUFF_VOLLEY", 260243, isSpellBookBuff); --"Volley"
+  getSpellInfoIfNeeded("SMARTBUFF_RAPIDFIRE", 257044, isSpellBookBuff); --"Rapid Fire"
+  getSpellInfoIfNeeded("SMARTBUFF_AOTC", 186257, isSpellBookBuff); --"Aspect of the Cheetah"
+  getSpellInfoIfNeeded("SMARTBUFF_AOTW", 193530, isSpellBookBuff); --"Aspect of the Wild"
+  getSpellInfoIfNeeded("SMARTBUFF_AOTE", 186289, isSpellBookBuff); --"Aspect of the Eagle"
   -- Hunter pets
-  GetSpellInfoIfNeeded("SMARTBUFF_CALL_PET_1", 883, isSpellBookBuff); -- "Call Pet 1"
-  GetSpellInfoIfNeeded("SMARTBUFF_CALL_PET_2", 83242, isSpellBookBuff); -- "Call Pet 2"
-  GetSpellInfoIfNeeded("SMARTBUFF_CALL_PET_3", 83243, isSpellBookBuff); -- "Call Pet 3"
-  GetSpellInfoIfNeeded("SMARTBUFF_CALL_PET_4", 83244, isSpellBookBuff); -- "Call Pet 4"
-  GetSpellInfoIfNeeded("SMARTBUFF_CALL_PET_5", 83245, isSpellBookBuff); -- "Call Pet 5"
+  getSpellInfoIfNeeded("SMARTBUFF_CALL_PET_1", 883, isSpellBookBuff); -- "Call Pet 1"
+  getSpellInfoIfNeeded("SMARTBUFF_CALL_PET_2", 83242, isSpellBookBuff); -- "Call Pet 2"
+  getSpellInfoIfNeeded("SMARTBUFF_CALL_PET_3", 83243, isSpellBookBuff); -- "Call Pet 3"
+  getSpellInfoIfNeeded("SMARTBUFF_CALL_PET_4", 83244, isSpellBookBuff); -- "Call Pet 4"
+  getSpellInfoIfNeeded("SMARTBUFF_CALL_PET_5", 83245, isSpellBookBuff); -- "Call Pet 5"
   -- Revive Pet if pet is dead instead of calling it
-  GetSpellInfoIfNeeded("SMARTBUFF_REVIVE_PET", 982, isSpellBookBuff); -- "Revive Pet"
+  getSpellInfoIfNeeded("SMARTBUFF_REVIVE_PET", 982, isSpellBookBuff); -- "Revive Pet"
   -- Hunter buff links
   S.LinkAspects = { 186257, 193530, 186289 }; -- Aspect of the Cheetah, Wild, Eagle
 --  S.LinkAmmo     = { SMARTBUFF_AMMOI, SMARTBUFF_AMMOP, SMARTBUFF_AMMOF };
 --  S.LinkLoneWolf = { SMARTBUFF_LW1, SMARTBUFF_LW2, SMARTBUFF_LW3, SMARTBUFF_LW4, SMARTBUFF_LW5, SMARTBUFF_LW6, SMARTBUFF_LW7, SMARTBUFF_LW8 };
 
   -- Shaman
-  GetSpellInfoIfNeeded("SMARTBUFF_LIGHTNINGSHIELD", 192106, isSpellBookBuff); --"Lightning Shield"
-  GetSpellInfoIfNeeded("SMARTBUFF_WATERSHIELD", 52127, isSpellBookBuff); --"Water Shield"
-  GetSpellInfoIfNeeded("SMARTBUFF_EARTHSHIELD", 974, isSpellBookBuff); --"Earth Shield"
-  GetSpellInfoIfNeeded("SMARTBUFF_WATERWALKING", 546, isSpellBookBuff); --"Water Walking"
-  --GetSpellInfoIfNeeded("SMARTBUFF_EMASTERY", 16166, isSpellBookBuff); --"Elemental Mastery"
-  GetSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_ELE", 114050, isSpellBookBuff); --"Ascendance (Elemental)"
-  GetSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_ENH", 114051, isSpellBookBuff); --"Ascendance (Enhancement)"
-  GetSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_RES", 114052, isSpellBookBuff); --"Ascendance (Restoration)"
-  GetSpellInfoIfNeeded("SMARTBUFF_WINDFURYW", 33757, isSpellBookBuff); --"Windfury Weapon"
-  GetSpellInfoIfNeeded("SMARTBUFF_FLAMETONGUEW", 318038, isSpellBookBuff); --"Flametongue Weapon"
-  GetSpellInfoIfNeeded("SMARTBUFF_EVERLIVINGW", 382021, isSpellBookBuff); --"Everliving Weapon"
-  GetSpellInfoIfNeeded("SMARTBUFF_SKYFURY", 462854, isSpellBookBuff); --"Skyfury"
-  GetSpellInfoIfNeeded("SMARTBUFF_TSWARD", 462760, isSpellBookBuff); --"Thunderstrike Ward" -- Shield
-  GetSpellInfoIfNeeded("SMARTBUFF_TIDEGUARD", 457481, isSpellBookBuff); --"Tidecaller's Guard" -- Shield. Replaces Flametongue Weapon
+  getSpellInfoIfNeeded("SMARTBUFF_LIGHTNINGSHIELD", 192106, isSpellBookBuff); --"Lightning Shield"
+  getSpellInfoIfNeeded("SMARTBUFF_WATERSHIELD", 52127, isSpellBookBuff); --"Water Shield"
+  getSpellInfoIfNeeded("SMARTBUFF_EARTHSHIELD", 974, isSpellBookBuff); --"Earth Shield"
+  getSpellInfoIfNeeded("SMARTBUFF_WATERWALKING", 546, isSpellBookBuff); --"Water Walking"
+  --getSpellInfoIfNeeded("SMARTBUFF_EMASTERY", 16166, isSpellBookBuff); --"Elemental Mastery"
+  getSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_ELE", 114050, isSpellBookBuff); --"Ascendance (Elemental)"
+  getSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_ENH", 114051, isSpellBookBuff); --"Ascendance (Enhancement)"
+  getSpellInfoIfNeeded("SMARTBUFF_ASCENDANCE_RES", 114052, isSpellBookBuff); --"Ascendance (Restoration)"
+  getSpellInfoIfNeeded("SMARTBUFF_WINDFURYW", 33757, isSpellBookBuff); --"Windfury Weapon"
+  getSpellInfoIfNeeded("SMARTBUFF_FLAMETONGUEW", 318038, isSpellBookBuff); --"Flametongue Weapon"
+  getSpellInfoIfNeeded("SMARTBUFF_EVERLIVINGW", 382021, isSpellBookBuff); --"Everliving Weapon"
+  getSpellInfoIfNeeded("SMARTBUFF_SKYFURY", 462854, isSpellBookBuff); --"Skyfury"
+  getSpellInfoIfNeeded("SMARTBUFF_TSWARD", 462760, isSpellBookBuff); --"Thunderstrike Ward" -- Shield
+  getSpellInfoIfNeeded("SMARTBUFF_TIDEGUARD", 457481, isSpellBookBuff); --"Tidecaller's Guard" -- Shield. Replaces Flametongue Weapon
 
   -- Shaman buff links
   S.ChainShamanShield = { 192106, 52127, 974 }; -- Lightning Shield, Water Shield, Earth Shield
@@ -1197,37 +1197,37 @@ function SMARTBUFF_InitSpellIDs()
   S.ProfessionToolItemIds = { 222505, 222506, 222507, 237372, 237373 };
 
   -- Warrior
-  GetSpellInfoIfNeeded("SMARTBUFF_BATTLESHOUT", 6673, isSpellBookBuff); --"Battle Shout"
+  getSpellInfoIfNeeded("SMARTBUFF_BATTLESHOUT", 6673, isSpellBookBuff); --"Battle Shout"
   --SMARTBUFF_COMMANDINGSHOUT = getSpellBookItemByName(97462);    --"Reallying Cry"
-  GetSpellInfoIfNeeded("SMARTBUFF_BERSERKERRAGE", 18499, isSpellBookBuff); --"Berserker Rage"
-  GetSpellInfoIfNeeded("SMARTBUFF_BATSTANCE", 386164, isSpellBookBuff); --"Battle Stance"
-  GetSpellInfoIfNeeded("SMARTBUFF_DEFSTANCE", 386208, isSpellBookBuff); --"Defensive Stance"
-  GetSpellInfoIfNeeded("SMARTBUFF_BERSERKSTANCE", 386196, isSpellBookBuff); --"Berserker Stance"
+  getSpellInfoIfNeeded("SMARTBUFF_BERSERKERRAGE", 18499, isSpellBookBuff); --"Berserker Rage"
+  getSpellInfoIfNeeded("SMARTBUFF_BATSTANCE", 386164, isSpellBookBuff); --"Battle Stance"
+  getSpellInfoIfNeeded("SMARTBUFF_DEFSTANCE", 386208, isSpellBookBuff); --"Defensive Stance"
+  getSpellInfoIfNeeded("SMARTBUFF_BERSERKSTANCE", 386196, isSpellBookBuff); --"Berserker Stance"
 --  SMARTBUFF_GLADSTANCE      = getSpellBookItemByName(156291); --"Gladiator Stance"
-  GetSpellInfoIfNeeded("SMARTBUFF_SHIELDBLOCK", 2565, isSpellBookBuff); --"Shield Block"
-  GetSpellInfoIfNeeded("SMARTBUFF_WARAVATAR", 107574, isSpellBookBuff); --"Avatar"
+  getSpellInfoIfNeeded("SMARTBUFF_SHIELDBLOCK", 2565, isSpellBookBuff); --"Shield Block"
+  getSpellInfoIfNeeded("SMARTBUFF_WARAVATAR", 107574, isSpellBookBuff); --"Avatar"
 
   -- Warrior buff chains (spell IDs so chains don't depend on globals at assembly time)
   S.ChainWarriorStance = { 386164, 386208, 386196 }; -- Battle Stance, Defensive Stance, Berserker Stance
   S.ChainWarriorShout  = { 6673 }; -- Battle Shout
 
   -- Rogue
-  GetSpellInfoIfNeeded("SMARTBUFF_STEALTH", 1784, isSpellBookBuff); --"Stealth"
-  GetSpellInfoIfNeeded("SMARTBUFF_BLADEFLURRY", 13877, isSpellBookBuff); --"Blade Flurry"
-  GetSpellInfoIfNeeded("SMARTBUFF_SAD", 315496, isSpellBookBuff); --"Slice and Dice"
-  GetSpellInfoIfNeeded("SMARTBUFF_EVASION", 5277, isSpellBookBuff); --"Evasion"
+  getSpellInfoIfNeeded("SMARTBUFF_STEALTH", 1784, isSpellBookBuff); --"Stealth"
+  getSpellInfoIfNeeded("SMARTBUFF_BLADEFLURRY", 13877, isSpellBookBuff); --"Blade Flurry"
+  getSpellInfoIfNeeded("SMARTBUFF_SAD", 315496, isSpellBookBuff); --"Slice and Dice"
+  getSpellInfoIfNeeded("SMARTBUFF_EVASION", 5277, isSpellBookBuff); --"Evasion"
 --  SMARTBUFF_HUNGERFORBLOOD  = getSpellBookItemByName(60177); --"Hunger For Blood"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRICKS", 57934, isSpellBookBuff); --"Tricks of the Trade"
-  GetSpellInfoIfNeeded("SMARTBUFF_RECUPERATE", 185311, isSpellBookBuff); --"Crimson Vial
+  getSpellInfoIfNeeded("SMARTBUFF_TRICKS", 57934, isSpellBookBuff); --"Tricks of the Trade"
+  getSpellInfoIfNeeded("SMARTBUFF_RECUPERATE", 185311, isSpellBookBuff); --"Crimson Vial
   -- Poisons
-  GetSpellInfoIfNeeded("SMARTBUFF_WOUNDPOISON", 8679, isSpellBookBuff); --"Wound Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_CRIPPLINGPOISON", 3408, isSpellBookBuff); --"Crippling Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_DEADLYPOISON", 2823, isSpellBookBuff); --"Deadly Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_WOUNDPOISON", 8679, isSpellBookBuff); --"Wound Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_CRIPPLINGPOISON", 3408, isSpellBookBuff); --"Crippling Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_DEADLYPOISON", 2823, isSpellBookBuff); --"Deadly Poison"
 --  SMARTBUFF_LEECHINGPOISON      = getSpellBookItemByName(108211); --"Leeching Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_INSTANTPOISON", 315584, isSpellBookBuff); --"Instant Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_NUMBINGPOISON", 5761, isSpellBookBuff); --"Numbing Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_AMPLIFYPOISON", 381664, isSpellBookBuff); --"Amplifying Poison"
-  GetSpellInfoIfNeeded("SMARTBUFF_ATROPHICPOISON", 381637, isSpellBookBuff); --"Atrophic Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_INSTANTPOISON", 315584, isSpellBookBuff); --"Instant Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_NUMBINGPOISON", 5761, isSpellBookBuff); --"Numbing Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_AMPLIFYPOISON", 381664, isSpellBookBuff); --"Amplifying Poison"
+  getSpellInfoIfNeeded("SMARTBUFF_ATROPHICPOISON", 381637, isSpellBookBuff); --"Atrophic Poison"
 
   -- Rogue buff links
   S.ChainRoguePoisonsLethal     = { 8679, 315584, 381664, 2823 }; -- Wound, Instant, Amplifying, Deadly Poison
@@ -1258,133 +1258,133 @@ function SMARTBUFF_InitSpellIDs()
   end
 
   -- Paladin
-  GetSpellInfoIfNeeded("SMARTBUFF_RIGHTEOUSFURY", 25780, isSpellBookBuff); --"Righteous Fury"
-  GetSpellInfoIfNeeded("SMARTBUFF_HOF", 1044, isSpellBookBuff); --"Blessing of Freedom"
-  GetSpellInfoIfNeeded("SMARTBUFF_HOP", 1022, isSpellBookBuff); --"Blessing of Protection"
-  GetSpellInfoIfNeeded("SMARTBUFF_BEACONOFLIGHT", 53563, isSpellBookBuff); --"Beacon of Light"
-  GetSpellInfoIfNeeded("SMARTBUFF_BEACONOFAITH", 156910, isSpellBookBuff); --"Beacon of Faith"
-  GetSpellInfoIfNeeded("SMARTBUFF_BEACONOFVIRTUE", 200025, isSpellBookBuff); --"Beacon of Virtue"
-  GetSpellInfoIfNeeded("SMARTBUFF_CRUSADERAURA", 32223, isSpellBookBuff); --"Crusader Aura"
-  GetSpellInfoIfNeeded("SMARTBUFF_DEVOTIONAURA", 465, isSpellBookBuff); --"Devotion Aura"
-  GetSpellInfoIfNeeded("SMARTBUFF_CONCENTRATIONAURA", 317920, isSpellBookBuff); --"Concentration Aura"
-  GetSpellInfoIfNeeded("SMARTBUFF_RITEOFSANTIFICATION", 433568, true); --"Right of Sanctification, Hero"
-  GetSpellInfoIfNeeded("SMARTBUFF_RITEOFADJURATION", 433583, isSpellBookBuff); --"Right of Adjuration, Hero"
+  getSpellInfoIfNeeded("SMARTBUFF_RIGHTEOUSFURY", 25780, isSpellBookBuff); --"Righteous Fury"
+  getSpellInfoIfNeeded("SMARTBUFF_HOF", 1044, isSpellBookBuff); --"Blessing of Freedom"
+  getSpellInfoIfNeeded("SMARTBUFF_HOP", 1022, isSpellBookBuff); --"Blessing of Protection"
+  getSpellInfoIfNeeded("SMARTBUFF_BEACONOFLIGHT", 53563, isSpellBookBuff); --"Beacon of Light"
+  getSpellInfoIfNeeded("SMARTBUFF_BEACONOFAITH", 156910, isSpellBookBuff); --"Beacon of Faith"
+  getSpellInfoIfNeeded("SMARTBUFF_BEACONOFVIRTUE", 200025, isSpellBookBuff); --"Beacon of Virtue"
+  getSpellInfoIfNeeded("SMARTBUFF_CRUSADERAURA", 32223, isSpellBookBuff); --"Crusader Aura"
+  getSpellInfoIfNeeded("SMARTBUFF_DEVOTIONAURA", 465, isSpellBookBuff); --"Devotion Aura"
+  getSpellInfoIfNeeded("SMARTBUFF_CONCENTRATIONAURA", 317920, isSpellBookBuff); --"Concentration Aura"
+  getSpellInfoIfNeeded("SMARTBUFF_RITEOFSANTIFICATION", 433568, true); --"Right of Sanctification, Hero"
+  getSpellInfoIfNeeded("SMARTBUFF_RITEOFADJURATION", 433583, isSpellBookBuff); --"Right of Adjuration, Hero"
   -- Paladin buff links
   S.ChainPaladinAura = { 465, 317920 }; -- Devotion Aura, Concentration Aura (Crusader not in chain; mounted-only, no chain)
 
   -- Death Knight
-  GetSpellInfoIfNeeded("SMARTBUFF_DANCINGRW", 49028, isSpellBookBuff); --"Dancing Rune Weapon"
+  getSpellInfoIfNeeded("SMARTBUFF_DANCINGRW", 49028, isSpellBookBuff); --"Dancing Rune Weapon"
 --  SMARTBUFF_BLOODPRESENCE     = getSpellBookItemByName(48263); --"Blood Presence"
 --  SMARTBUFF_FROSTPRESENCE     = getSpellBookItemByName(48266); --"Frost Presence"
 --  SMARTBUFF_UNHOLYPRESENCE    = getSpellBookItemByName(48265); --"Unholy Presence"
-  GetSpellInfoIfNeeded("SMARTBUFF_PATHOFFROST", 3714, isSpellBookBuff); --"Path of Frost"
+  getSpellInfoIfNeeded("SMARTBUFF_PATHOFFROST", 3714, isSpellBookBuff); --"Path of Frost"
 --  SMARTBUFF_BONESHIELD        = getSpellBookItemByName(49222); --"Bone Shield"
 --  SMARTBUFF_HORNOFWINTER      = getSpellBookItemByName(57330); --"Horn of Winter"
-  GetSpellInfoIfNeeded("SMARTBUFF_RAISEDEAD", 46584, isSpellBookBuff); --"Raise Dead"
+  getSpellInfoIfNeeded("SMARTBUFF_RAISEDEAD", 46584, isSpellBookBuff); --"Raise Dead"
 --  SMARTBUFF_POTGRAVE          = getSpellBookItemByName(155522); --"Power of the Grave" (P)
   -- Death Knight buff links
 --  S.ChainDKPresence = { SMARTBUFF_BLOODPRESENCE, SMARTBUFF_FROSTPRESENCE, SMARTBUFF_UNHOLYPRESENCE };
 
   -- Monk
-  GetSpellInfoIfNeeded("SMARTBUFF_BLACKOX", 115315, isSpellBookBuff); --"Summon Black Ox Statue"
-  GetSpellInfoIfNeeded("SMARTBUFF_JADESERPENT", 115313, isSpellBookBuff); --"Summon Jade Serpent Statue"
+  getSpellInfoIfNeeded("SMARTBUFF_BLACKOX", 115315, isSpellBookBuff); --"Summon Black Ox Statue"
+  getSpellInfoIfNeeded("SMARTBUFF_JADESERPENT", 115313, isSpellBookBuff); --"Summon Jade Serpent Statue"
   -- Monk buff links
   S.ChainMonkStatue = { 115315, 115313 }; -- Summon Black Ox Statue, Summon Jade Serpent Statue
 --  S.ChainMonkStance = { SMARTBUFF_SOTFIERCETIGER, SMARTBUFF_SOTSTURDYOX, SMARTBUFF_SOTWISESERPENT, SMARTBUFF_SOTSPIRITEDCRANE };
 
   -- Evoker
-  GetSpellInfoIfNeeded("SMARTBUFF_BRONZEBLESSING", 364342, isSpellBookBuff); --"Blessing of the Bronze"
-  GetSpellInfoIfNeeded("SMARTBUFF_SENSEPOWER", 361021, isSpellBookBuff); --"Sense Power"
-  GetSpellInfoIfNeeded("SMARTBUFF_SourceOfMagic", 369459, isSpellBookBuff); --"Source of Magic"
-  GetSpellInfoIfNeeded("SMARTBUFF_EbonMight", 395152, isSpellBookBuff); --"Ebon Might"
-  GetSpellInfoIfNeeded("SMARTBUFF_BlisteringScale", 360827, isSpellBookBuff); --"Blistering Scales"
-  GetSpellInfoIfNeeded("SMARTBUFF_Timelessness", 412710, isSpellBookBuff); --"Timelessness"
-  GetSpellInfoIfNeeded("SMARTBUFF_BronzeAttunement", 403265, isSpellBookBuff); --"Bronze Attunement"
-  GetSpellInfoIfNeeded("SMARTBUFF_BlackAttunement", 403264, isSpellBookBuff); --"Black Attunement"
+  getSpellInfoIfNeeded("SMARTBUFF_BRONZEBLESSING", 364342, isSpellBookBuff); --"Blessing of the Bronze"
+  getSpellInfoIfNeeded("SMARTBUFF_SENSEPOWER", 361021, isSpellBookBuff); --"Sense Power"
+  getSpellInfoIfNeeded("SMARTBUFF_SourceOfMagic", 369459, isSpellBookBuff); --"Source of Magic"
+  getSpellInfoIfNeeded("SMARTBUFF_EbonMight", 395152, isSpellBookBuff); --"Ebon Might"
+  getSpellInfoIfNeeded("SMARTBUFF_BlisteringScale", 360827, isSpellBookBuff); --"Blistering Scales"
+  getSpellInfoIfNeeded("SMARTBUFF_Timelessness", 412710, isSpellBookBuff); --"Timelessness"
+  getSpellInfoIfNeeded("SMARTBUFF_BronzeAttunement", 403265, isSpellBookBuff); --"Bronze Attunement"
+  getSpellInfoIfNeeded("SMARTBUFF_BlackAttunement", 403264, isSpellBookBuff); --"Black Attunement"
 
   -- Demon Hunter
 
   -- Tracking -- this is deprecated due to moving to minimap
-  GetSpellInfoIfNeeded("SMARTBUFF_FINDMINERALS", 2580, isSpellBookBuff); --"Find Minerals"
-  GetSpellInfoIfNeeded("SMARTBUFF_FINDHERBS", 2383, isSpellBookBuff); --"Find Herbs"
-  GetSpellInfoIfNeeded("SMARTBUFF_FINDTREASURE", 2481, isSpellBookBuff); --"Find Treasure"
-  GetSpellInfoIfNeeded("SMARTBUFF_FINDFISH", 43308, isSpellBookBuff); --"Find Fish"
-  GetSpellInfoIfNeeded("SMARTBUFF_FINDLUMBER", 1256697, isSpellBookBuff); --"Find Lumber" (lumber profession)
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKHUMANOIDS", 19883, isSpellBookBuff); --"Track Humanoids"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKBEASTS", 1494, isSpellBookBuff); --"Track Beasts"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKUNDEAD", 19884, isSpellBookBuff); --"Track Undead"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKHIDDEN", 19885, isSpellBookBuff); --"Track Hidden"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKELEMENTALS", 19880, isSpellBookBuff); --"Track Elementals"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKDEMONS", 19878, isSpellBookBuff); --"Track Demons"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKGIANTS", 19882, isSpellBookBuff); --"Track Giants"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKDRAGONKIN", 19879, isSpellBookBuff); --"Track Dragonkin"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKMECHANICALS", 229533, isSpellBookBuff); --"Track Mechanicals"
-  GetSpellInfoIfNeeded("SMARTBUFF_TRACKPETS", 122026, isSpellBookBuff); --"Track Pets"
+  getSpellInfoIfNeeded("SMARTBUFF_FINDMINERALS", 2580, isSpellBookBuff); --"Find Minerals"
+  getSpellInfoIfNeeded("SMARTBUFF_FINDHERBS", 2383, isSpellBookBuff); --"Find Herbs"
+  getSpellInfoIfNeeded("SMARTBUFF_FINDTREASURE", 2481, isSpellBookBuff); --"Find Treasure"
+  getSpellInfoIfNeeded("SMARTBUFF_FINDFISH", 43308, isSpellBookBuff); --"Find Fish"
+  getSpellInfoIfNeeded("SMARTBUFF_FINDLUMBER", 1256697, isSpellBookBuff); --"Find Lumber" (lumber profession)
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKHUMANOIDS", 19883, isSpellBookBuff); --"Track Humanoids"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKBEASTS", 1494, isSpellBookBuff); --"Track Beasts"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKUNDEAD", 19884, isSpellBookBuff); --"Track Undead"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKHIDDEN", 19885, isSpellBookBuff); --"Track Hidden"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKELEMENTALS", 19880, isSpellBookBuff); --"Track Elementals"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKDEMONS", 19878, isSpellBookBuff); --"Track Demons"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKGIANTS", 19882, isSpellBookBuff); --"Track Giants"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKDRAGONKIN", 19879, isSpellBookBuff); --"Track Dragonkin"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKMECHANICALS", 229533, isSpellBookBuff); --"Track Mechanicals"
+  getSpellInfoIfNeeded("SMARTBUFF_TRACKPETS", 122026, isSpellBookBuff); --"Track Pets"
 
   -- Racial
-  GetSpellInfoIfNeeded("SMARTBUFF_STONEFORM", 20594,  isSpellBookBuff); --"Stoneform"
-  GetSpellInfoIfNeeded("SMARTBUFF_BLOODFURY", 20572, isSpellBookBuff); --"Blood Fury" 33697, 33702
-  GetSpellInfoIfNeeded("SMARTBUFF_BERSERKING", 26297, isSpellBookBuff); --"Berserking"
-  GetSpellInfoIfNeeded("SMARTBUFF_WOTFORSAKEN", 7744, isSpellBookBuff); --"Will of the Forsaken"
-  GetSpellInfoIfNeeded("SMARTBUFF_WarStomp", 20549, isSpellBookBuff); --"War Stomp"
-  GetSpellInfoIfNeeded("SMARTBUFF_Visage", 351239, isSpellBookBuff); --"Evoker Visage"
+  getSpellInfoIfNeeded("SMARTBUFF_STONEFORM", 20594,  isSpellBookBuff); --"Stoneform"
+  getSpellInfoIfNeeded("SMARTBUFF_BLOODFURY", 20572, isSpellBookBuff); --"Blood Fury" 33697, 33702
+  getSpellInfoIfNeeded("SMARTBUFF_BERSERKING", 26297, isSpellBookBuff); --"Berserking"
+  getSpellInfoIfNeeded("SMARTBUFF_WOTFORSAKEN", 7744, isSpellBookBuff); --"Will of the Forsaken"
+  getSpellInfoIfNeeded("SMARTBUFF_WarStomp", 20549, isSpellBookBuff); --"War Stomp"
+  getSpellInfoIfNeeded("SMARTBUFF_Visage", 351239, isSpellBookBuff); --"Evoker Visage"
 
   -- Eating & Drinking (Generic - These are checked by NAME not ID)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_EatingAura", 433); --"Food"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_DrinkingAura", 430); --"Drink"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_FoodDrinkAura", 192002); --"Food & Drink"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_EatingAura", 433); --"Food"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_DrinkingAura", 430); --"Drink"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_FoodDrinkAura", 192002); --"Food & Drink"
   -- Well Fed (Generic - These are checked by NAME not ID)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_WellFedAura", 46899); --"Well Fed"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_HeartyFedAura", 462181); --"Hearty Well Fed"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_WellFedAura", 46899); --"Well Fed"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_HeartyFedAura", 462181); --"Hearty Well Fed"
   -- Relaxed (Generic - These are checked by NAME not ID)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_RelaxedAura", 1269152); --"Relaxed"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_RelaxedAura", 1269152); --"Relaxed"
 
   -- Misc
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_KIRUSSOV", 46302); --"K'iru's Song of Victory"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_KIRUSSOV", 46302); --"K'iru's Song of Victory"
   -- Special case: FISHING has fallback spell ID
   if (SMARTBUFF_FISHING == nil) then
     SMARTBUFF_FISHING = C_Spell.GetSpellInfo(450647) or C_Spell.GetSpellInfo(131476);
   end
 
   -- Scroll
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBAGILITY", 8115); --"Scroll buff: Agility"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBINTELLECT", 8096); --"Scroll buff: Intellect"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBSTAMINA", 8099); --"Scroll buff: Stamina"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBSPIRIT", 8112); --"Scroll buff: Spirit"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBSTRENGHT", 8118); --"Scroll buff: Strength"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_SBPROTECTION", 89344); --"Scroll buff: Armor"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem1", 326396); --"WoW's 16th Anniversary"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem2", 62574); --"Warts-B-Gone Lip Balm"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem3", 98444); --"Vrykul Drinking Horn"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem4", 127230); --"Visions of Insanity"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem5", 124036); --"Anglers Fishing Raft"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem6", 125167); --"Ancient Pandaren Fishing Charm"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem7", 138927); --"Burning Essence"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem8", 160331); --"Blood Elf Illusion"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem9", 158486); --"Safari Hat"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem10", 158474); --"Savage Safari Hat"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem11", 176151); --"Whispers of Insanity"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem12", 193456); --"Gaze of the Legion"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem13", 193547); --"Fel Crystal Infusion"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14", 190668); --"Empower"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_1", 175457); --"Focus Augmentation"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_2", 175456); --"Hyper Augmentation"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_3", 175439); --"Stout Augmentation
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem16", 181642); --"Bodyguard Miniaturization Device"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem17", 242551); --"Fel Focus"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBAGILITY", 8115); --"Scroll buff: Agility"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBINTELLECT", 8096); --"Scroll buff: Intellect"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBSTAMINA", 8099); --"Scroll buff: Stamina"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBSPIRIT", 8112); --"Scroll buff: Spirit"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBSTRENGHT", 8118); --"Scroll buff: Strength"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_SBPROTECTION", 89344); --"Scroll buff: Armor"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem1", 326396); --"WoW's 16th Anniversary"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem2", 62574); --"Warts-B-Gone Lip Balm"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem3", 98444); --"Vrykul Drinking Horn"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem4", 127230); --"Visions of Insanity"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem5", 124036); --"Anglers Fishing Raft"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem6", 125167); --"Ancient Pandaren Fishing Charm"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem7", 138927); --"Burning Essence"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem8", 160331); --"Blood Elf Illusion"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem9", 158486); --"Safari Hat"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem10", 158474); --"Savage Safari Hat"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem11", 176151); --"Whispers of Insanity"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem12", 193456); --"Gaze of the Legion"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem13", 193547); --"Fel Crystal Infusion"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14", 190668); --"Empower"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_1", 175457); --"Focus Augmentation"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_2", 175456); --"Hyper Augmentation"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem14_3", 175439); --"Stout Augmentation
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem16", 181642); --"Bodyguard Miniaturization Device"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMiscItem17", 242551); --"Fel Focus"
   -- Shadowlands
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BAugmentRune", 367405); --"Eternal Augmentation from Eternal Augment Rune"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BVieledAugment", 347901); --"Veiled Augmentation from Veiled Augment Rune"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BDreamAugmentRune", 393438); --"Dream Augmentation from Dream Augment Rune"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BAugmentRune", 367405); --"Eternal Augmentation from Eternal Augment Rune"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BVieledAugment", 347901); --"Veiled Augmentation from Veiled Augment Rune"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BDreamAugmentRune", 393438); --"Dream Augmentation from Dream Augment Rune"
   -- Dragonflight
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BDraconicRune", 393438); -- Draconic Augmentation from Draconic Augment Rune
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q1", 384154); -- Vantus Rune: Vault of the Incarnates (Quality 1)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q2", 384248); -- Vantus Rune: Vault of the Incarnates (Quality 2)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q3", 384306); -- Vantus Rune: Vault of the Incarnates (Quality 3)
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BDraconicRune", 393438); -- Draconic Augmentation from Draconic Augment Rune
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q1", 384154); -- Vantus Rune: Vault of the Incarnates (Quality 1)
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q2", 384248); -- Vantus Rune: Vault of the Incarnates (Quality 2)
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BVantusRune_VotI_q3", 384306); -- Vantus Rune: Vault of the Incarnates (Quality 3)
   -- TWW
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BTWWCrystalAugRune1", 453250); -- Crystallization/Crystallized Augment Rune
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BTWWEtherealAugRune", 1234969); -- Ethereal Augmentation from Ethereal Augment Rune
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BMidnightVoidAugRune", 1264426); -- Void-Touched (Midnight augment rune)
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BTWWCrystalAugRune1", 453250); -- Crystallization/Crystallized Augment Rune
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BTWWEtherealAugRune", 1234969); -- Ethereal Augmentation from Ethereal Augment Rune
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BMidnightVoidAugRune", 1264426); -- Void-Touched (Midnight augment rune)
 
   -- Links as spell IDs so links don't depend on globals at assembly time
   S.LinkSafariHat = { 158486, 158474 }; -- Safari Hat, Savage Safari Hat (spell IDs)
@@ -1392,95 +1392,95 @@ function SMARTBUFF_InitSpellIDs()
   S.LinkAugment   = { 190668, 175457, 175456, 175439, 367405, 347901, 393438, 393438, 453250, 1234969, 1264426 };
 
   -- Flasks & Elixirs (these are the buffs that are checked vs item itself)
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC1", 28520); --"Flask of Relentless Assault"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC2", 28540); --"Flask of Pure Death"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC3", 28518); --"Flask of Fortification"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC4", 28521); --"Flask of Blinding Light"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC5", 28519); --"Flask of Mighty Versatility"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK1", 53760); --"Flask of Endless Rage"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK2", 53755); --"Flask of the Frost Wyrm"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK3", 53758); --"Flask of Stoneblood"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK4", 54212); --"Flask of Pure Mojo"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT1", 79471); --"Flask of the Winds"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT2", 79472); --"Flask of Titanic Strength"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT3", 79470); --"Flask of the Draconic Mind"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT4", 79469); --"Flask of Steelskin"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT5", 94160); --"Flask of Flowing Water"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT7", 92679); --"Flask of Battle"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP1", 105617); --"Alchemist's Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP2", 105694); --"Flask of the Earth"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP3", 105693); --"Flask of Falling Leaves"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP4", 105689); --"Flask of Spring Blossoms"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP5", 105691); --"Flask of the Warm Sun"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP6", 105696); --"Flask of Winter's Bite"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT61", 79640); --"Enhanced Intellect"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT62", 79639); --"Enhanced Agility"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT63", 79638); --"Enhanced Strength"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD1", 156077); --"Draenic Stamina Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD2", 156071); --"Draenic Strength Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD3", 156070); --"Draenic Intellect Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD4", 156073); --"Draenic Agility Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD1", 156084); --"Greater Draenic Stamina Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD2", 156080); --"Greater Draenic Strength Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD3", 156079); --"Greater Draenic Intellect Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD4", 156064); --"Greater Draenic Agility Flask"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG1", 188035); --"Flask of Ten Thousand Scars"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG2", 188034); --"Flask of the Countless Armies"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG3", 188031); --"Flask of the Whispered Pact"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG4", 188033); --"Flask of the Seventh Demon"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA1", 251837); --"Flask of Endless Fathoms"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA2", 251836); --"Flask of the Currents"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA3", 251839); --"Flask of the Undertow"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA4", 251838); --"Flask of the Vast Horizon"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA1", 298837); --"Greather Flask of Endless Fathoms"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA2", 298836); --"Greater Flask of the Currents"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA3", 298841); --"Greather Flask of teh Untertow"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA4", 298839); --"Greater Flask of the Vast Horizon"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKSL1", 307185); --"Spectral Flask of Power"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKSL2", 307187); --"Spectral Flask of Stamina"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC1", 28520); --"Flask of Relentless Assault"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC2", 28540); --"Flask of Pure Death"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC3", 28518); --"Flask of Fortification"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC4", 28521); --"Flask of Blinding Light"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTBC5", 28519); --"Flask of Mighty Versatility"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK1", 53760); --"Flask of Endless Rage"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK2", 53755); --"Flask of the Frost Wyrm"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK3", 53758); --"Flask of Stoneblood"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASK4", 54212); --"Flask of Pure Mojo"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT1", 79471); --"Flask of the Winds"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT2", 79472); --"Flask of Titanic Strength"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT3", 79470); --"Flask of the Draconic Mind"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT4", 79469); --"Flask of Steelskin"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT5", 94160); --"Flask of Flowing Water"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT7", 92679); --"Flask of Battle"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP1", 105617); --"Alchemist's Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP2", 105694); --"Flask of the Earth"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP3", 105693); --"Flask of Falling Leaves"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP4", 105689); --"Flask of Spring Blossoms"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP5", 105691); --"Flask of the Warm Sun"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMOP6", 105696); --"Flask of Winter's Bite"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT61", 79640); --"Enhanced Intellect"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT62", 79639); --"Enhanced Agility"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKCT63", 79638); --"Enhanced Strength"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD1", 156077); --"Draenic Stamina Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD2", 156071); --"Draenic Strength Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD3", 156070); --"Draenic Intellect Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKWOD4", 156073); --"Draenic Agility Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD1", 156084); --"Greater Draenic Stamina Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD2", 156080); --"Greater Draenic Strength Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD3", 156079); --"Greater Draenic Intellect Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKWOD4", 156064); --"Greater Draenic Agility Flask"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG1", 188035); --"Flask of Ten Thousand Scars"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG2", 188034); --"Flask of the Countless Armies"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG3", 188031); --"Flask of the Whispered Pact"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKLEG4", 188033); --"Flask of the Seventh Demon"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA1", 251837); --"Flask of Endless Fathoms"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA2", 251836); --"Flask of the Currents"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA3", 251839); --"Flask of the Undertow"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKBFA4", 251838); --"Flask of the Vast Horizon"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA1", 298837); --"Greather Flask of Endless Fathoms"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA2", 298836); --"Greater Flask of the Currents"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA3", 298841); --"Greather Flask of teh Untertow"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BGRFLASKBFA4", 298839); --"Greater Flask of the Vast Horizon"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKSL1", 307185); --"Spectral Flask of Power"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKSL2", 307187); --"Spectral Flask of Stamina"
   -- Dragonflight
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF1", 371345); -- Phial of the Eye in the Storm
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF2", 371204); -- Phial of Still Air
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF3", 371036); -- Phial of Icy Preservation
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF4", 374000); -- Iced Phial of Corrupting Rage
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF5", 371386); -- Phial of Charged Isolation
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF6", 373257); -- Phial of Glacial Fury
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF7", 370652); -- Phial of Static Empowerment
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF8", 371172); -- Phial of Tepid Versatility
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF9", 393700); -- Aerated Phial of Deftness
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF10", 393717); -- Steaming Phial of Finesse
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF11", 371186); -- Charged Phial of Alacrity
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF12", 393714); -- Crystalline Phial of Perception
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF1", 371345); -- Phial of the Eye in the Storm
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF2", 371204); -- Phial of Still Air
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF3", 371036); -- Phial of Icy Preservation
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF4", 374000); -- Iced Phial of Corrupting Rage
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF5", 371386); -- Phial of Charged Isolation
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF6", 373257); -- Phial of Glacial Fury
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF7", 370652); -- Phial of Static Empowerment
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF8", 371172); -- Phial of Tepid Versatility
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF9", 393700); -- Aerated Phial of Deftness
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF10", 393717); -- Steaming Phial of Finesse
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF11", 371186); -- Charged Phial of Alacrity
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF12", 393714); -- Crystalline Phial of Perception
   -- the Phial of Elemental Chaos gives 1 the following 4 random buffs every 60 seconds
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_1", 371348); -- Elemental Chaos: Fire
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_2", 371350); -- Elemental Chaos: Air
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_3", 371351); -- Elemental Chaos: Earth
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_4", 371353); -- Elemental Chaos: Frost
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF14", 393665); -- Aerated Phial of Quick Hands
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_1", 371348); -- Elemental Chaos: Fire
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_2", 371350); -- Elemental Chaos: Air
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_3", 371351); -- Elemental Chaos: Earth
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF13_4", 371353); -- Elemental Chaos: Frost
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFlaskDF14", 393665); -- Aerated Phial of Quick Hands
   -- The War Within
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW1", 431971); -- Flask of Tempered Aggression
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW2", 431972); -- Flask of Tempered Swiftness
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW3", 431973); -- Flask of Tempered Versatility
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW4", 431974); -- Flask of Tempered Mastery
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW5", 432021); -- Flask of Tempered Chaos
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW6", 432473); -- Flask of Tempered Aggression
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW7", 432306); -- Phial of Concentrated Ingenuity
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW8", 432265); -- Phial of Truesight
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW9", 432304); -- Phial of Enhanced Ambidexterity
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW10", 432286); -- Phial of Bountiful Seasons
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_1", 432403); -- Vicious Flask of Classical Spirits
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_2", 432430); -- Vicious Flask of Honor
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_3", 432497); -- Vicious Flask of Manifested Fury
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_4", 432452); -- Vicious Flask of the Wrecking Ball
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW1", 431971); -- Flask of Tempered Aggression
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW2", 431972); -- Flask of Tempered Swiftness
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW3", 431973); -- Flask of Tempered Versatility
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW4", 431974); -- Flask of Tempered Mastery
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW5", 432021); -- Flask of Tempered Chaos
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW6", 432473); -- Flask of Tempered Aggression
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW7", 432306); -- Phial of Concentrated Ingenuity
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW8", 432265); -- Phial of Truesight
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW9", 432304); -- Phial of Enhanced Ambidexterity
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWW10", 432286); -- Phial of Bountiful Seasons
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_1", 432403); -- Vicious Flask of Classical Spirits
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_2", 432430); -- Vicious Flask of Honor
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_3", 432497); -- Vicious Flask of Manifested Fury
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKTWWPvP_4", 432452); -- Vicious Flask of the Wrecking Ball
   -- Midnight phials and flasks
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN1", 1236767); -- Haranir Phial of Finesse
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN2", 1239755); -- Haranir Phial of Ingenuity
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN3", 1236763); -- Haranir Phial of Perception
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN4", 1235057); -- Flask of Thalassian Resistance
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN5", 1235108); -- Flask of the Magisters
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN6", 1235110); -- Flask of the Blood Knights
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN7", 1235111); -- Flask of the Shattered Sun
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN8", 1239355); -- Vicious Thalassian Flask of Honor
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN1", 1236767); -- Haranir Phial of Finesse
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN2", 1239755); -- Haranir Phial of Ingenuity
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN3", 1236763); -- Haranir Phial of Perception
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN4", 1235057); -- Flask of Thalassian Resistance
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN5", 1235108); -- Flask of the Magisters
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN6", 1235110); -- Flask of the Blood Knights
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN7", 1235111); -- Flask of the Shattered Sun
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BFLASKMIDN8", 1239355); -- Vicious Thalassian Flask of Honor
 
   -- Flask/Phial links as spell IDs so links don't depend on globals at assembly time
   S.LinkFlaskTBC     = { 28520, 28540, 28518, 28521, 28519 }; -- TBC flasks
@@ -1494,57 +1494,57 @@ function SMARTBUFF_InitSpellIDs()
   S.LinkFlaskTWW     = { 431971, 431972, 431973, 431974, 432021, 432473, 432306, 432265, 432304, 432286, 432403, 432430, 432497, 432452 }; -- TWW flasks
   S.LinkFlaskMidnight = { 1236767, 1239755, 1236763, 1235057, 1235108, 1235110, 1235111, 1239355 }; -- Midnight phials + flasks (main + fleeting share same buff IDs for 4–7)
 
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC1", 54494); --"Major Agility" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC2", 33726); --"Mastery" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC3", 28491); --"Healing Power" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC4", 28502); --"Major Defense" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC5", 28490); --"Major Strength" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC6", 39625); --"Major Fortitude" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC7", 28509); --"Major Mageblood" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC8", 39627); --"Draenic Wisdom" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC9", 54452); --"Adept's Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC10", 134870); --"Empowerment" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC11", 33720); --"Onslaught Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC12", 28503); --"Major Shadow Power" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC13", 39628); --"Ironskin" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC14", 39626); --"Earthen Elixir" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC15", 28493); --"Major Frost Power" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC16", 38954); --"Fel Strength Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC17", 28501); --"Major Firepower" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR1", 28497); --"Mighty Agility" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR2", 60347); --"Mighty Thoughts" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR3", 53751); --"Elixir of Mighty Fortitude" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR4", 53748); --"Mighty Strength" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR5", 53747); --"Elixir of Spirit" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR6", 53763); --"Protection" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR7", 60343); --"Mighty Defense" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR8", 60346); --"Lightning Speed" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR9", 60344); --"Expertise" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR10", 60341); --"Deadly Strikes" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR11", 80532); --"Armor Piercing"
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR12", 60340); --"Accuracy" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR13", 53749); --"Guru's Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR14", 11334); --"Elixir of Greater Agility" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR15", 54452); --"Adept's Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR16", 33721); --"Spellpower Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT1", 79635); --"Elixir of the Master" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT2", 79632); --"Elixir of Mighty Speed" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT3", 79481); --"Elixir of Impossible Accuracy" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT4", 79631); --"Prismatic Elixir" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT5", 79480); --"Elixir of Deep Earth" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT6", 79477); --"Elixir of the Cobra" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT7", 79474); --"Elixir of the Naga" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT8", 79468); --"Ghost Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP1", 105687); --"Elixir of Mirrors" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP2", 105685); --"Elixir of Peace" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP3", 105686); --"Elixir of Perfection" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP4", 105684); --"Elixir of the Rapids" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP5", 105683); --"Elixir of Weaponry" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP6", 105682); --"Mad Hozen Elixir" B
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP7", 105681); --"Mantid Elixir" G
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP8", 105688); --"Monk's Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC1", 54494); --"Major Agility" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC2", 33726); --"Mastery" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC3", 28491); --"Healing Power" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC4", 28502); --"Major Defense" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC5", 28490); --"Major Strength" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC6", 39625); --"Major Fortitude" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC7", 28509); --"Major Mageblood" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC8", 39627); --"Draenic Wisdom" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC9", 54452); --"Adept's Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC10", 134870); --"Empowerment" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC11", 33720); --"Onslaught Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC12", 28503); --"Major Shadow Power" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC13", 39628); --"Ironskin" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC14", 39626); --"Earthen Elixir" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC15", 28493); --"Major Frost Power" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC16", 38954); --"Fel Strength Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRTBC17", 28501); --"Major Firepower" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR1", 28497); --"Mighty Agility" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR2", 60347); --"Mighty Thoughts" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR3", 53751); --"Elixir of Mighty Fortitude" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR4", 53748); --"Mighty Strength" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR5", 53747); --"Elixir of Spirit" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR6", 53763); --"Protection" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR7", 60343); --"Mighty Defense" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR8", 60346); --"Lightning Speed" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR9", 60344); --"Expertise" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR10", 60341); --"Deadly Strikes" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR11", 80532); --"Armor Piercing"
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR12", 60340); --"Accuracy" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR13", 53749); --"Guru's Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR14", 11334); --"Elixir of Greater Agility" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR15", 54452); --"Adept's Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIR16", 33721); --"Spellpower Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT1", 79635); --"Elixir of the Master" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT2", 79632); --"Elixir of Mighty Speed" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT3", 79481); --"Elixir of Impossible Accuracy" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT4", 79631); --"Prismatic Elixir" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT5", 79480); --"Elixir of Deep Earth" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT6", 79477); --"Elixir of the Cobra" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT7", 79474); --"Elixir of the Naga" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRCT8", 79468); --"Ghost Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP1", 105687); --"Elixir of Mirrors" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP2", 105685); --"Elixir of Peace" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP3", 105686); --"Elixir of Perfection" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP4", 105684); --"Elixir of the Rapids" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP5", 105683); --"Elixir of Weaponry" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP6", 105682); --"Mad Hozen Elixir" B
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP7", 105681); --"Mantid Elixir" G
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BELIXIRMOP8", 105688); --"Monk's Elixir" B
   -- Draught of Ten Lands
-  GetSpellInfoDirectIfNeeded("SMARTBUFF_BEXP_POTION", 289982); --Draught of Ten Lands
+  getSpellInfoDirectIfNeeded("SMARTBUFF_BEXP_POTION", 289982); --Draught of Ten Lands
 
   --if (SMARTBUFF_GOTW) then
   --  SMARTBUFF_AddMsgD(SMARTBUFF_GOTW.." found");
@@ -1621,7 +1621,7 @@ function SMARTBUFF_BuildItemTables()
   end
   ]]
 
-  -- Build SMARTBUFF_SCROLL: fixed scroll/misc entries first, then AddItem(...) scrolls and toys below
+  -- Build SMARTBUFF_SCROLL: fixed scroll/misc entries first, then addItem(...) scrolls and toys below
   SMARTBUFF_SCROLL = {
     {SMARTBUFF_MiscItem17, 60, SMARTBUFF_CONST_SCROLL, nil, SMARTBUFF_BMiscItem17, S.LinkFlaskLeg},
     {SMARTBUFF_MiscItem16, 60, SMARTBUFF_CONST_SCROLL, nil, SMARTBUFF_BMiscItem16},
@@ -1703,107 +1703,107 @@ function SMARTBUFF_BuildItemTables()
     {SMARTBUFF_MidnightVoidAugRune, 60, SMARTBUFF_CONST_SCROLL, nil, SMARTBUFF_BMidnightVoidAugRune, S.LinkAugment},
   };
 
-  -- Viable toy buffs: each AddItem(itemId, spellId, duration) appends one entry to SMARTBUFF_SCROLL.
+  -- Viable toy buffs: each addItem(itemId, spellId, duration) appends one entry to SMARTBUFF_SCROLL.
   -- These are toys SmartBuff can track and suggest (CONST_SCROLL type; resolved via S.Toybox / item vars)
   -- Shadowlands
-  AddItem(212525, 432001,  15); -- Delicate Ebony Parasol
-  AddItem(182694, 341678,  15); -- Stylish Black Parasol
+  addItem(212525, 432001,  15); -- Delicate Ebony Parasol
+  addItem(182694, 341678,  15); -- Stylish Black Parasol
   -- Dragonflight
-  AddItem(199902, 388275,  30); -- Wayfarer's Compass
-  AddItem(202019, 396172,  30); -- Golden Dragon Goblet
-  AddItem(198857, 385941,  30); -- Lucky Duck
+  addItem(199902, 388275,  30); -- Wayfarer's Compass
+  addItem(202019, 396172,  30); -- Golden Dragon Goblet
+  addItem(198857, 385941,  30); -- Lucky Duck
   -- TWW
-  AddItem(212518, 431709, 60);  -- Vial of Endless Draconic Scales
+  addItem(212518, 431709, 60);  -- Vial of Endless Draconic Scales
   -- Other Toys
-  AddItem(174906, 270058,  60); -- Lightning-Forged Augment Rune
-  AddItem(153023, 224001,  60); -- Lightforged Augment Rune
-  AddItem(160053, 270058,  60); --Battle-Scarred Augment Rune
-  AddItem(164375, 281303,  10); --Bad Mojo Banana
-  AddItem(129165, 193345,  10); --Barnacle-Encrusted Gem
-  AddItem(116115, 170869,  60); -- Blazing Wings
-  AddItem(133997, 203533,   0); --Black Ice
-  AddItem(122298, 181642,  60); --Bodyguard Miniaturization Device
-  AddItem(163713, 279934,  30); --Brazier Cap
-  AddItem(128310, 189363,  10); --Burning Blade
-  AddItem(116440, 171554,  20); --Burning Defender's Medallion
-  AddItem(128807, 192225,  60); -- Coin of Many Faces
-  AddItem(138878, 217668,   5); --Copy of Daglop's Contract
-  AddItem(143662, 232613,  60); --Crate of Bobbers: Pepe
-  AddItem(142529, 231319,  60); --Crate of Bobbers: Cat Head
-  AddItem(142530, 231338,  60); --Crate of Bobbers: Tugboat
-  AddItem(142528, 231291,  60); --Crate of Bobbers: Can of Worms
-  AddItem(142532, 231349,  60); --Crate of Bobbers: Murloc Head
-  AddItem(147308, 240800,  60); --Crate of Bobbers: Enchanted Bobber
-  AddItem(142531, 231341,  60); --Crate of Bobbers: Squeaky Duck
-  AddItem(147312, 240801,  60); --Crate of Bobbers: Demon Noggin
-  AddItem(147307, 240803,  60); --Crate of Bobbers: Carved Wooden Helm
-  AddItem(147309, 240806,  60); --Crate of Bobbers: Face of the Forest
-  AddItem(147310, 240802,  60); --Crate of Bobbers: Floating Totem
-  AddItem(147311, 240804,  60); --Crate of Bobbers: Replica Gondola
-  AddItem(122117, 179872,  15); --Cursed Feather of Ikzan
-  AddItem( 54653,  75532,  30); -- Darkspear Pride
-  AddItem(108743, 160688,  10); --Deceptia's Smoldering Boots
-  AddItem(159753, 279366,   5); --Desert Flute
-  AddItem(164373, 281298,  10); --Enchanted Soup Stone
-  AddItem(140780, 224992,   5); --Fal'dorei Egg
-  AddItem(122304, 138927,  10); -- Fandral's Seed Pouch
-  AddItem(102463, 148429,  10); -- Fire-Watcher's Oath
-  AddItem(128471, 190655,  30); --Frostwolf Grunt's Battlegear
-  AddItem(128462, 190653,  30); --Karabor Councilor's Attire
-  AddItem(161342, 275089,  30); --Gem of Acquiescence
-  AddItem(127659, 188228,  60); --Ghostly Iron Buccaneer's Hat
-  AddItem( 54651,  75531,  30); -- Gnomeregan Pride
-  AddItem(118716, 175832,   5); --Goren Garb
-  AddItem(138900, 217708,  10); --Gravil Goldbraid's Famous Sausage Hat
-  AddItem(159749, 277572,   5); --Haw'li's Hot & Spicy Chili
-  AddItem(163742, 279997,  60); --Heartsbane Grimoire
-  AddItem(129149, 193333,  60); -- Death's Door Charm
-  AddItem(140325, 223446,  10); --Home Made Party Mask
-  AddItem(136855, 210642,0.25); --Hunter's Call
-  AddItem( 43499,  58501,  10); -- Iron Boot Flask
-  AddItem(118244, 173956,  60); --Iron Buccaneer's Hat
-  AddItem(170380, 304369, 120); --Jar of Sunwarmed Sand
-  AddItem(127668, 187174,   5); --Jewel of Hellfire
-  AddItem( 26571, 127261,  10); --Kang's Bindstone
-  AddItem( 68806,  96312,  30); -- Kalytha's Haunted Locket
-  AddItem(163750, 280121,  10); --Kovork Kostume
-  AddItem(164347, 281302,  10); --Magic Monkey Banana
-  AddItem(118938, 176180,  10); --Manastorm's Duplicator
-  AddItem(163775, 280133,  10); --Molok Morion
-  AddItem(101571, 144787,   0); --Moonfang Shroud
-  AddItem(105898, 145255,  10); --Moonfang's Paw
-  AddItem( 52201,  73320,  10); --Muradin's Favor
-  AddItem(138873, 217597,   5); --Mystical Frosh Hat
-  AddItem(163795, 280308,  10); --Oomgut Ritual Drum
-  AddItem(  1973,  16739,   5); --Orb of Deception
-  AddItem( 35275, 160331,  30); --Orb of the Sin'dorei
-  AddItem(158149, 264091,  30); --Overtuned Corgi Goggles
-  AddItem(130158, 195949,   5); --Path of Elothir
-  AddItem(127864, 188172,  60); --Personal Spotlight
-  AddItem(127394, 186842,   5); --Podling Camouflage
-  AddItem(108739, 162402,   5); --Pretty Draenor Pearl
-  AddItem(129093, 129999,  10); --Ravenbear Disguise
-  AddItem(153179, 254485,   5); --Blue Conservatory Scroll
-  AddItem(153180, 254486,   5); --Yellow Conservatory Scroll
-  AddItem(153181, 254487,   5); --Red Conservatory Scroll
-  AddItem(104294, 148529,  15); --Rime of the Time-Lost Mariner
-  AddItem(119215, 176898,  10); --Robo-Gnomebobulator
-  AddItem(119134, 176569,  30); --Sargerei Disguise
-  AddItem(129055,  62089,  60); --Shoe Shine Kit
-  AddItem(163436, 279977,  30); --Spectral Visage
-  AddItem(156871, 261981,  60); --Spitzy
-  AddItem( 66888,   6405,   3); --Stave of Fur and Claw
-  AddItem(111476, 169291,   5); --Stolen Breath
-  AddItem(140160, 222630,  10); --Stormforged Vrykul Horn
-  AddItem(163738, 279983,  30); --Syndicate Mask
-  AddItem(130147, 195509,   5); --Thistleleaf Branch
-  AddItem(113375, 166592,   5); --Vindicator's Armor Polish Kit
-  AddItem(163565, 279407,   5); --Vulpera Scrapper's Armor
-  AddItem(163924, 280632,  30); --Whiskerwax Candle
-  AddItem( 97919, 141917,   3); --Whole-Body Shrinka'
-  AddItem(167698, 293671,  60); --Secret Fish Goggles
-  AddItem(169109, 299445,  60); --Beeholder's Goggles
-  AddItem(191341, 371172,  30); -- Tepid Q3
+  addItem(174906, 270058,  60); -- Lightning-Forged Augment Rune
+  addItem(153023, 224001,  60); -- Lightforged Augment Rune
+  addItem(160053, 270058,  60); --Battle-Scarred Augment Rune
+  addItem(164375, 281303,  10); --Bad Mojo Banana
+  addItem(129165, 193345,  10); --Barnacle-Encrusted Gem
+  addItem(116115, 170869,  60); -- Blazing Wings
+  addItem(133997, 203533,   0); --Black Ice
+  addItem(122298, 181642,  60); --Bodyguard Miniaturization Device
+  addItem(163713, 279934,  30); --Brazier Cap
+  addItem(128310, 189363,  10); --Burning Blade
+  addItem(116440, 171554,  20); --Burning Defender's Medallion
+  addItem(128807, 192225,  60); -- Coin of Many Faces
+  addItem(138878, 217668,   5); --Copy of Daglop's Contract
+  addItem(143662, 232613,  60); --Crate of Bobbers: Pepe
+  addItem(142529, 231319,  60); --Crate of Bobbers: Cat Head
+  addItem(142530, 231338,  60); --Crate of Bobbers: Tugboat
+  addItem(142528, 231291,  60); --Crate of Bobbers: Can of Worms
+  addItem(142532, 231349,  60); --Crate of Bobbers: Murloc Head
+  addItem(147308, 240800,  60); --Crate of Bobbers: Enchanted Bobber
+  addItem(142531, 231341,  60); --Crate of Bobbers: Squeaky Duck
+  addItem(147312, 240801,  60); --Crate of Bobbers: Demon Noggin
+  addItem(147307, 240803,  60); --Crate of Bobbers: Carved Wooden Helm
+  addItem(147309, 240806,  60); --Crate of Bobbers: Face of the Forest
+  addItem(147310, 240802,  60); --Crate of Bobbers: Floating Totem
+  addItem(147311, 240804,  60); --Crate of Bobbers: Replica Gondola
+  addItem(122117, 179872,  15); --Cursed Feather of Ikzan
+  addItem( 54653,  75532,  30); -- Darkspear Pride
+  addItem(108743, 160688,  10); --Deceptia's Smoldering Boots
+  addItem(159753, 279366,   5); --Desert Flute
+  addItem(164373, 281298,  10); --Enchanted Soup Stone
+  addItem(140780, 224992,   5); --Fal'dorei Egg
+  addItem(122304, 138927,  10); -- Fandral's Seed Pouch
+  addItem(102463, 148429,  10); -- Fire-Watcher's Oath
+  addItem(128471, 190655,  30); --Frostwolf Grunt's Battlegear
+  addItem(128462, 190653,  30); --Karabor Councilor's Attire
+  addItem(161342, 275089,  30); --Gem of Acquiescence
+  addItem(127659, 188228,  60); --Ghostly Iron Buccaneer's Hat
+  addItem( 54651,  75531,  30); -- Gnomeregan Pride
+  addItem(118716, 175832,   5); --Goren Garb
+  addItem(138900, 217708,  10); --Gravil Goldbraid's Famous Sausage Hat
+  addItem(159749, 277572,   5); --Haw'li's Hot & Spicy Chili
+  addItem(163742, 279997,  60); --Heartsbane Grimoire
+  addItem(129149, 193333,  60); -- Death's Door Charm
+  addItem(140325, 223446,  10); --Home Made Party Mask
+  addItem(136855, 210642,0.25); --Hunter's Call
+  addItem( 43499,  58501,  10); -- Iron Boot Flask
+  addItem(118244, 173956,  60); --Iron Buccaneer's Hat
+  addItem(170380, 304369, 120); --Jar of Sunwarmed Sand
+  addItem(127668, 187174,   5); --Jewel of Hellfire
+  addItem( 26571, 127261,  10); --Kang's Bindstone
+  addItem( 68806,  96312,  30); -- Kalytha's Haunted Locket
+  addItem(163750, 280121,  10); --Kovork Kostume
+  addItem(164347, 281302,  10); --Magic Monkey Banana
+  addItem(118938, 176180,  10); --Manastorm's Duplicator
+  addItem(163775, 280133,  10); --Molok Morion
+  addItem(101571, 144787,   0); --Moonfang Shroud
+  addItem(105898, 145255,  10); --Moonfang's Paw
+  addItem( 52201,  73320,  10); --Muradin's Favor
+  addItem(138873, 217597,   5); --Mystical Frosh Hat
+  addItem(163795, 280308,  10); --Oomgut Ritual Drum
+  addItem(  1973,  16739,   5); --Orb of Deception
+  addItem( 35275, 160331,  30); --Orb of the Sin'dorei
+  addItem(158149, 264091,  30); --Overtuned Corgi Goggles
+  addItem(130158, 195949,   5); --Path of Elothir
+  addItem(127864, 188172,  60); --Personal Spotlight
+  addItem(127394, 186842,   5); --Podling Camouflage
+  addItem(108739, 162402,   5); --Pretty Draenor Pearl
+  addItem(129093, 129999,  10); --Ravenbear Disguise
+  addItem(153179, 254485,   5); --Blue Conservatory Scroll
+  addItem(153180, 254486,   5); --Yellow Conservatory Scroll
+  addItem(153181, 254487,   5); --Red Conservatory Scroll
+  addItem(104294, 148529,  15); --Rime of the Time-Lost Mariner
+  addItem(119215, 176898,  10); --Robo-Gnomebobulator
+  addItem(119134, 176569,  30); --Sargerei Disguise
+  addItem(129055,  62089,  60); --Shoe Shine Kit
+  addItem(163436, 279977,  30); --Spectral Visage
+  addItem(156871, 261981,  60); --Spitzy
+  addItem( 66888,   6405,   3); --Stave of Fur and Claw
+  addItem(111476, 169291,   5); --Stolen Breath
+  addItem(140160, 222630,  10); --Stormforged Vrykul Horn
+  addItem(163738, 279983,  30); --Syndicate Mask
+  addItem(130147, 195509,   5); --Thistleleaf Branch
+  addItem(113375, 166592,   5); --Vindicator's Armor Polish Kit
+  addItem(163565, 279407,   5); --Vulpera Scrapper's Armor
+  addItem(163924, 280632,  30); --Whiskerwax Candle
+  addItem( 97919, 141917,   3); --Whole-Body Shrinka'
+  addItem(167698, 293671,  60); --Secret Fish Goggles
+  addItem(169109, 299445,  60); --Beeholder's Goggles
+  addItem(191341, 371172,  30); -- Tepid Q3
 
   -- Potions... but really it's flasks :)
   SMARTBUFF_POTION = {
