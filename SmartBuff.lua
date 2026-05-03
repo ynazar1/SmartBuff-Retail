@@ -420,6 +420,18 @@ local function getCurrentSpec()
   return currentSpec;
 end
 
+-- SMARTBUFF_TEMPLATES entry for a SmartBuffGroup key (e.g. "Solo"); nil if enum or index missing.
+local function smartBuffTemplateForGroupKey(key)
+  if (not SMARTBUFF_TEMPLATES or not Enum or not Enum.SmartBuffGroup or not key) then
+    return nil;
+  end
+  local idx = Enum.SmartBuffGroup[key];
+  if (not idx) then
+    return nil;
+  end
+  return SMARTBUFF_TEMPLATES[idx];
+end
+
 -- Resolves the active profile name (string from SMARTBUFF_TEMPLATES, not a numeric index).
 -- Defaults like Options_Init (SMARTBUFF_TEMPLATES[1], valid O.LastTemplate) and SetTemplate (Solo).
 local function getCurrentTemplate()
@@ -438,9 +450,7 @@ local function getCurrentTemplate()
     currentTemplate = SMARTBUFF_TEMPLATES[1];
     return currentTemplate;
   end
-  if (SMARTBUFF_TEMPLATES and Enum and Enum.SmartBuffGroup and SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]) then
-    currentTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo];
-  end
+  currentTemplate = smartBuffTemplateForGroupKey("Solo");
   return currentTemplate;
 end
 
@@ -1351,7 +1361,7 @@ function SMARTBUFF_SetTemplate(force)
 
   -- Ensure currentTemplate is set (fallback to Solo if nil)
   if (currentTemplate == nil) then
-    currentTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo];
+    currentTemplate = smartBuffTemplateForGroupKey("Solo") or (SMARTBUFF_TEMPLATES and SMARTBUFF_TEMPLATES[1]);
   end
 
   local newTemplate = currentTemplate -- default to old template
@@ -1366,22 +1376,22 @@ function SMARTBUFF_SetTemplate(force)
 
     -- Check by type in enum order; difficultyID first (Horrific Vision, Delve) since they can overlap party/raid
     if difficultyID == 152 then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.HorrificVision]
+      newTemplate = smartBuffTemplateForGroupKey("HorrificVision")
       switchReason = "horrific vision"
     elseif difficultyID == 208 then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Delve]
+      newTemplate = smartBuffTemplateForGroupKey("Delve")
       switchReason = "delve"
     elseif instanceType == "party" then
       if difficultyID == 8 then
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.MythicKeystone]
+        newTemplate = smartBuffTemplateForGroupKey("MythicKeystone")
         switchReason = "mythic keystone"
       else
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+        newTemplate = smartBuffTemplateForGroupKey("Party")
         switchReason = "party"
       end
     elseif instanceType == "raid" then
       if LfgDungeonID then
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.LFR]
+        newTemplate = smartBuffTemplateForGroupKey("LFR")
         switchReason = "LFR"
       elseif O.AutoSwitchTemplateInst then
         -- instName from GetInstanceInfo is localized; match directly in assembled SMARTBUFF_TEMPLATES
@@ -1392,18 +1402,18 @@ function SMARTBUFF_SetTemplate(force)
           switchReason = "instance"
         end
         if not isRaidInstanceTemplate then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         end
       else
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+        newTemplate = smartBuffTemplateForGroupKey("Raid")
         switchReason = "raid"
       end
     elseif instanceType == "pvp" then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Battleground] or SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+      newTemplate = smartBuffTemplateForGroupKey("Battleground") or smartBuffTemplateForGroupKey("Solo")
       switchReason = "battleground"
     elseif instanceType == "arena" then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Arena] or SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+      newTemplate = smartBuffTemplateForGroupKey("Arena") or smartBuffTemplateForGroupKey("Solo")
       switchReason = "arena"
     end
 
@@ -1422,25 +1432,25 @@ function SMARTBUFF_SetTemplate(force)
       if instanceType and instanceType ~= "none" then
         -- In an instance but no template matched; use group context if available
         if IsInRaid() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         elseif IsInGroup() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+          newTemplate = smartBuffTemplateForGroupKey("Party")
           switchReason = "party"
         else
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+          newTemplate = smartBuffTemplateForGroupKey("Solo")
           switchReason = "unknown instance"
         end
       else
         -- Open world
         if IsInRaid() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         elseif IsInGroup() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+          newTemplate = smartBuffTemplateForGroupKey("Party")
           switchReason = "party"
         else
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+          newTemplate = smartBuffTemplateForGroupKey("Solo")
           switchReason = "solo"
         end
       end
@@ -1468,8 +1478,8 @@ function SMARTBUFF_SetTemplate(force)
   wipe(cIgnoreUnitList);
 
   -- Raid Setup (or Arena/BG when in raid)
-  local isArenaOrBG = (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Arena]) or currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Battleground]));
-  if (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]) or isRaidInstanceTemplate) or (isArenaOrBG and IsInRaid()) then
+  local isArenaOrBG = (currentTemplate == smartBuffTemplateForGroupKey("Arena")) or (currentTemplate == smartBuffTemplateForGroupKey("Battleground"));
+  if (currentTemplate == smartBuffTemplateForGroupKey("Raid") or isRaidInstanceTemplate) or (isArenaOrBG and IsInRaid()) then
     cClassGroups = {};
     local name, server, rank, subgroup, level, class, classeng, zone, online, isDead;
     local sRUnit = nil;
@@ -1524,7 +1534,7 @@ function SMARTBUFF_SetTemplate(force)
     SMARTBUFF_AddMsgD("Raid Unit-Setup finished");
 
     -- Party Setup (or Arena/BG when in party)
-  elseif (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party])) or (isArenaOrBG and IsInGroup()) then
+  elseif (currentTemplate == smartBuffTemplateForGroupKey("Party")) or (isArenaOrBG and IsInGroup()) then
     cClassGroups = {};
     local curTm = buffsTemplateTable(currentTemplate);
     if (curTm and curTm.SelfFirst) then
