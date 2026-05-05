@@ -136,7 +136,7 @@ local inCombatCastsequenceExpectedSpells = {};
 local inCombatCastsequenceNextIndex = 1;
 local inCombatCastsequenceAllDone = false;
 
-local function SMARTBUFF_ResetInCombatCastsequenceProgress()
+local function resetInCombatCastsequenceProgress()
   wipe(inCombatCastsequenceExpectedSpells);
   inCombatCastsequenceNextIndex = 1;
   inCombatCastsequenceAllDone = false;
@@ -262,35 +262,35 @@ StaticPopupDialogs["SMARTBUFF_GUI_RELOAD"] = {
   hideOnEscape = 1
 }
 
--- Rounds a number to the given number of decimal places.
+-- rounds a number to the given number of decimal places.
 local r_mult;
-local function Round(num, idp)
+local function round(num, idp)
   r_mult = 10 ^ (idp or 0);
   return math.floor(num * r_mult + 0.5) / r_mult;
 end
 
--- Returns a chat color code string
-local function BCC(r, g, b)
+-- Returns a WoW chat color code string from normalized 0-1 RGB.
+local function sbChatColorFromRGB(r, g, b)
   return string.format("|cff%02x%02x%02x", (r * 255), (g * 255), (b * 255));
 end
 
-local BL  = BCC(0, 0, 1);
-local BLD = BCC(0, 0, 0.7);
-local BLL = BCC(0.5, 0.8, 1);
-local GR  = BCC(0, 1, 0);
-local GRD = BCC(0, 0.7, 0);
-local GRL = BCC(0.6, 1, 0.6);
-local RD  = BCC(1, 0, 0);
-local RDD = BCC(0.7, 0, 0);
-local RDL = BCC(1, 0.3, 0.3);
-local YL  = BCC(1, 1, 0);
-local YLD = BCC(0.7, 0.7, 0);
-local YLL = BCC(1, 1, 0.5);
-local OR  = BCC(1, 0.7, 0);
-local ORD = BCC(0.7, 0.5, 0);
-local ORL = BCC(1, 0.6, 0.3);
-local WH  = BCC(1, 1, 1);
-local CY  = BCC(0.5, 1, 1);
+local BL  = sbChatColorFromRGB(0, 0, 1);
+local BLD = sbChatColorFromRGB(0, 0, 0.7);
+local BLL = sbChatColorFromRGB(0.5, 0.8, 1);
+local GR  = sbChatColorFromRGB(0, 1, 0);
+local GRD = sbChatColorFromRGB(0, 0.7, 0);
+local GRL = sbChatColorFromRGB(0.6, 1, 0.6);
+local RD  = sbChatColorFromRGB(1, 0, 0);
+local RDD = sbChatColorFromRGB(0.7, 0, 0);
+local RDL = sbChatColorFromRGB(1, 0.3, 0.3);
+local YL  = sbChatColorFromRGB(1, 1, 0);
+local YLD = sbChatColorFromRGB(0.7, 0.7, 0);
+local YLL = sbChatColorFromRGB(1, 1, 0.5);
+local OR  = sbChatColorFromRGB(1, 0.7, 0);
+local ORD = sbChatColorFromRGB(0.7, 0.5, 0);
+local ORL = sbChatColorFromRGB(1, 0.6, 0.3);
+local WH  = sbChatColorFromRGB(1, 1, 1);
+local CY  = sbChatColorFromRGB(0.5, 1, 1);
 
 -- function to preview selected warning sound in options screen
 function SMARTBUFF_PlaySpashSound()
@@ -358,7 +358,7 @@ end
 -- Chain/link entries: spell ID (number), spell name (string), or spell info table (.name).
 -- Order can be string or table (saved state).
 -- Resolve numeric IDs at use time so chains/links don't depend on globals being set when assembled.
-local function ResolveChainOrLinkEntry(entry)
+local function resolveChainOrLinkEntry(entry)
   if (type(entry) == "number") then
     local name = C_Spell.GetSpellName(entry);
     if (name and name ~= "") then return name; end
@@ -368,7 +368,7 @@ local function ResolveChainOrLinkEntry(entry)
   return type(entry) == "string" and entry or nil;
 end
 
-local function ChainContains(chain, buffName)
+local function chainContains(chain, buffName)
   if (not chain or type(chain) ~= "table" or not buffName) then return false; end
   local nameToMatch = (type(buffName) == "table" and buffName.name) or buffName;
   if (not nameToMatch) then return false; end
@@ -382,20 +382,20 @@ local function ChainContains(chain, buffName)
     elseif (entry == nameToMatch) then return true;
     elseif (type(entry) == "table" and entry.name == nameToMatch) then return true;
     elseif (type(entry) == "number") then
-      if (ResolveChainOrLinkEntry(entry) == nameToMatch) then return true; end
+      if (resolveChainOrLinkEntry(entry) == nameToMatch) then return true; end
     end
   end
   return false;
 end
 
-local function ChkS(text)
+local function chkS(text)
   if (text == nil) then
     text = "";
   end
   return text;
 end
 
-local function IsVisibleToPlayer(self)
+local function isVisibleToPlayer(self)
   if (not self) then return false; end
 
   local w, h = UIParent:GetWidth(), UIParent:GetHeight();
@@ -408,51 +408,120 @@ local function IsVisibleToPlayer(self)
   return false;
 end
 
-local function CS()
+local function getCurrentSpec()
   if (currentSpec == nil) then
     currentSpec = GetSpecialization();
   end
   if (currentSpec == nil) then
     currentSpec = 1;
     SMARTBUFF_AddMsgErr("Could not detect active talent group, set to default = 1");
-    printd("Could not detect active talent group, set to default = 1");
+    SMARTBUFF_Printd("Could not detect active talent group, set to default = 1");
   end
   return currentSpec;
 end
 
-local function CT()
+-- SMARTBUFF_TEMPLATES entry for a SmartBuffGroup key (e.g. "Solo"); nil if enum or index missing.
+local function smartBuffTemplateForGroupKey(key)
+  if (not SMARTBUFF_TEMPLATES or not Enum or not Enum.SmartBuffGroup or not key) then
+    return nil;
+  end
+  local idx = Enum.SmartBuffGroup[key];
+  if (not idx) then
+    return nil;
+  end
+  return SMARTBUFF_TEMPLATES[idx];
+end
+
+-- Resolves the active profile name (string from SMARTBUFF_TEMPLATES, not a numeric index).
+-- Defaults like Options_Init (SMARTBUFF_TEMPLATES[1], valid O.LastTemplate) and SetTemplate (Solo).
+local function getCurrentTemplate()
+  if (currentTemplate ~= nil) then
+    return currentTemplate;
+  end
+  if (O and O.LastTemplate and SMARTBUFF_TEMPLATES) then
+    for _, tname in ipairs(SMARTBUFF_TEMPLATES) do
+      if (tname == O.LastTemplate) then
+        currentTemplate = O.LastTemplate;
+        return currentTemplate;
+      end
+    end
+  end
+  if (SMARTBUFF_TEMPLATES and SMARTBUFF_TEMPLATES[1]) then
+    currentTemplate = SMARTBUFF_TEMPLATES[1];
+    return currentTemplate;
+  end
+  currentTemplate = smartBuffTemplateForGroupKey("Solo");
   return currentTemplate;
 end
 
-local function GetBuffSettings(buff)
-  if (not B or not buff) then return nil; end
-  local cBuff = B[CS()][CT()][buff];
+-- Safe access to B[spec][template]. Tables may be missing briefly after spec/template changes.
+local function buffsSpecTable()
+  return B and B[getCurrentSpec()] or nil;
+end
+
+-- Optional templateName; defaults to current template (getCurrentTemplate()).
+local function buffsTemplateTable(templateName)
+  local spec = buffsSpecTable();
+  if (not spec) then return nil; end
+  templateName = templateName or getCurrentTemplate();
+  if (not templateName) then return nil; end
+  return spec[templateName];
+end
+
+local function buffsTemplateOrder()
+  local spec = buffsSpecTable();
+  return spec and spec.Order or nil;
+end
+
+-- Ensures B[getCurrentSpec()][templateName] exists (SelfFirst seeded). templateName optional, defaults to getCurrentTemplate().
+local function ensureBuffsTemplateTable(templateName)
+  templateName = templateName or getCurrentTemplate();
+  if (not B or not templateName) then return nil; end
+  local spec = buffsSpecTable();
+  if (not spec) then
+    B[getCurrentSpec()] = {};
+    spec = buffsSpecTable();
+  end
+  local tm = spec[templateName];
+  if (not tm) then
+    tm = {};
+    tm.SelfFirst = false;
+    spec[templateName] = tm;
+  end
+  return tm;
+end
+
+local function getBuffSettings(buff)
+  if (not buff) then return nil; end
+  local tmplB = buffsTemplateTable();
+  if (not tmplB) then return nil; end
+  local cBuff = tmplB[buff];
   local id = (type(buff) == "string") and tonumber(string.match(buff, "item:(%d+)"));
   -- If found via direct key and key is a full item link (not canonical), migrate to canonical so
   -- SavedVariables persist next session (link string can differ between sessions).
   if (cBuff and id and type(buff) == "string") then
     local canKey = "item:" .. tostring(id);
     if (buff ~= canKey) then
-      B[CS()][CT()][canKey] = cBuff;
-      B[CS()][CT()][buff] = nil;
+      tmplB[canKey] = cBuff;
+      tmplB[buff] = nil;
     end
   end
   -- Item-type keys can be full link or "item:ID"; try canonical key so settings persist across load order
   if (not cBuff and type(buff) == "string") then
     if (not id) then id = tonumber(string.match(buff, "item:(%d+)")); end
     if (id) then
-      cBuff = B[CS()][CT()]["item:" .. tostring(id)];
+      cBuff = tmplB["item:" .. tostring(id)];
       -- Last session may have saved under full link; find any key that refers to this item
       if (not cBuff) then
-        for k, v in pairs(B[CS()][CT()]) do
+        for k, v in pairs(tmplB) do
           if (type(k) == "string" and type(v) == "table") then
             local kid = tonumber(string.match(k, "item:(%d+)"));
             if (kid == id) then
               cBuff = v;
               -- Migrate to canonical key so future lookups and saves use one key
               local canKey = "item:" .. tostring(id);
-              B[CS()][CT()][canKey] = v;
-              B[CS()][CT()][k] = nil;
+              tmplB[canKey] = v;
+              tmplB[k] = nil;
               break;
             end
           end
@@ -467,7 +536,7 @@ end
 -- migrate or drop link/name orphans so SavedVariables stay clean and we avoid confused state.
 -- Rate-limited to CRUFT_CLEANUP_CHUNK keys per iteration; continues next frame if more keys remain.
 local CRUFT_CLEANUP_CHUNK = 500;
-local function CleanBuffSettingsCruftOneTable(t, keys, startIdx)
+local function cleanBuffSettingsCruftOneTable(t, keys, startIdx)
   if (not t or type(t) ~= "table") then return; end
   local expected = SMARTBUFF_ExpectedData;
   if (not expected or not expected.items) then return; end
@@ -520,24 +589,24 @@ local function CleanBuffSettingsCruftOneTable(t, keys, startIdx)
   end
   if (last < #keys) then
     C_Timer.After(0, function()
-      CleanBuffSettingsCruftOneTable(t, keys, last + 1);
+      cleanBuffSettingsCruftOneTable(t, keys, last + 1);
     end);
   end
 end
 
-local function CleanBuffSettingsCruft()
-  if (not B or not B[CS()]) then return; end
+local function cleanBuffSettingsCruft()
+  if (not B or not B[getCurrentSpec()]) then return; end
   if (not SMARTBUFF_ExpectedData or not SMARTBUFF_ExpectedData.items) then return; end
-  for ctKey, ctTbl in pairs(B[CS()]) do
+  for ctKey, ctTbl in pairs(B[getCurrentSpec()]) do
     if (ctKey ~= "Order" and type(ctTbl) == "table") then
-      CleanBuffSettingsCruftOneTable(ctTbl);
+      cleanBuffSettingsCruftOneTable(ctTbl);
     end
   end
 end
 
-local function InitBuffSettings(cBI, reset)
+local function initBuffSettings(cBI, reset)
   local buff = cBI.BuffS;
-  local cBuff = GetBuffSettings(buff);
+  local cBuff = getBuffSettings(buff);
   local id = (type(buff) == "string") and tonumber(string.match(buff, "item:(%d+)"));
   if (cBuff == nil) then
     -- Use canonical key for item-type buffs so link vs placeholder doesn't lose saved settings
@@ -553,8 +622,10 @@ local function InitBuffSettings(cBI, reset)
       end
       if (id) then key = "item:" .. tostring(id); end
     end
-    B[CS()][CT()][key] = {};
-    cBuff = B[CS()][CT()][key];
+    local tm = ensureBuffsTemplateTable();
+    if (not tm) then return; end
+    tm[key] = {};
+    cBuff = tm[key];
     reset = true;
   end
 
@@ -583,7 +654,7 @@ local function InitBuffSettings(cBI, reset)
     end
     -- Restore EnableS from cache only when building the SAME template that was last saved; otherwise new templates incorrectly inherit enabled state from another.
     -- NOTE: Could be useful to evaluate later: propagate initial state from Solo to never-used profiles (so users don't start from blank slate), then allow customizing.
-    if (SmartBuffBuffListCache and SmartBuffBuffListCache.enabledBuffs and SmartBuffBuffListCache.lastTemplate == CT()) then
+    if (SmartBuffBuffListCache and SmartBuffBuffListCache.enabledBuffs and SmartBuffBuffListCache.lastTemplate == getCurrentTemplate()) then
       if (not id) then id = (type(buff) == "string") and tonumber(string.match(buff, "item:(%d+)")); end
       if (not id and SMARTBUFF_ExpectedData and SMARTBUFF_ExpectedData.items) then
         for varName, itemId in pairs(SMARTBUFF_ExpectedData.items) do
@@ -611,14 +682,15 @@ local function InitBuffSettings(cBI, reset)
   if (cBuff.SkipBGResQueue == nil) then cBuff.SkipBGResQueue = false; end
 end
 
-local function InitBuffOrder(reset)
+local function initBuffOrder(reset)
   if not B then B = {} end
-  if not B[CS()] then B[CS()] = {} end
-  if not B[CS()].Order then B[CS()].Order = {} end
+  if not buffsSpecTable() then B[getCurrentSpec()] = {} end
+  local spec = buffsSpecTable();
+  if not spec.Order then spec.Order = {} end
 
   local b;
   local i;
-  local ord = B[CS()].Order;
+  local ord = spec.Order;
 
   if (reset) then
     wipe(ord);
@@ -692,7 +764,7 @@ local function InitBuffOrder(reset)
   end
 end
 
-local function IsMinLevel(minLevel)
+local function isMinLevel(minLevel)
   if (not minLevel) then
     return true;
   end
@@ -702,11 +774,11 @@ local function IsMinLevel(minLevel)
   return true;
 end
 
-local function IsPlayerInGuild()
+local function isPlayerInGuild()
   return IsInGuild()   -- and GetGuildInfo("player")
 end
 
-local function SendSmartbuffVersion(player, unit)
+local function sendSmartbuffVersion(player, unit)
   -- if ive announced to this player / the player is me then just return.
   if player == UnitName("player") then return end
   for count, value in ipairs(SmartbuffVerNotifyList) do
@@ -719,7 +791,7 @@ local function SendSmartbuffVersion(player, unit)
 end
 
 -- TODO: Redesign if reactivated!
-local function IsTalentSkilled(t, i, name)
+local function isTalentSkilled(t, i, name)
   local _, tName, _, _, tAvailable = GetTalentInfo(t, i);
   if (tName) then
     isTTreeLoaded = true;
@@ -774,7 +846,7 @@ function SMARTBUFF_OnLoad(self)
   tinsert(UISpecialFrames, "SmartBuffOptionsFrame");
   UIPanelWindows["SmartBuffOptionsFrame"] = nil;
 
-  SlashCmdList["SMARTBUFF"] = SMARTBUFF_command;
+  SlashCmdList["SMARTBUFF"] = SMARTBUFF_Command;
   SLASH_SMARTBUFF1 = "/sbo";
   SLASH_SMARTBUFF2 = "/sbuff";
   SLASH_SMARTBUFF3 = "/smartbuff";
@@ -822,7 +894,7 @@ local arg1, arg2, arg3, arg4, arg5 = ...;
     if (event == "PLAYER_ENTERING_WORLD" and (arg1 or arg2) and SmartBuffValidSpells) then
       SMARTBUFF_ClearValidSpells();
     end
-    if IsPlayerInGuild() and event == "PLAYER_ENTERING_WORLD" then
+    if isPlayerInGuild() and event == "PLAYER_ENTERING_WORLD" then
       C_ChatInfo.SendAddonMessage(SmartbuffPrefix, SMARTBUFF_VERSION, "GUILD")
     end
     isPlayer = true;
@@ -835,7 +907,7 @@ local arg1, arg2, arg3, arg4, arg5 = ...;
     end
   elseif (event == "ADDON_LOADED" and arg1 and (arg1 == SMARTBUFF_TITLE or strfind(arg1, "SmartBuff") == 1)) then
     isLoaded = true;
-    SmartBuff_SetupTooltips();
+    SMARTBUFF_SetupTooltips();
   end
 
   -- PLAYER_LOGIN
@@ -1039,7 +1111,7 @@ local arg1, arg2, arg3, arg4, arg5 = ...;
         SMARTBUFF_Splash_Clear();
       end
     end
-  elseif ((event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST") and isInit and B and B[CS()]) then
+  elseif ((event == "PLAYER_ALIVE" or event == "PLAYER_UNGHOST") and isInit and B and B[getCurrentSpec()]) then
     -- BG resurrection: queue buffs to try (aura state is secret during match)
     -- PLAYER_ALIVE = release to GY or accept res; PLAYER_UNGHOST = spawn after running as ghost
     local _, instanceType = GetInstanceInfo();
@@ -1244,7 +1316,7 @@ end
 
 -- True if template has at least one buff with EnableS or EnableG.
 local function templateHasEnabledBuffs(templateName)
-  local t = B and B[CS()] and B[CS()][templateName];
+  local t = buffsTemplateTable(templateName);
   if (not t or type(t) ~= "table") then return false; end
   for k, v in pairs(t) do
     if (type(v) == "table" and (v.EnableS or v.EnableG)) then return true; end
@@ -1255,16 +1327,17 @@ end
 -- Copy buff settings from one template to another (for RetainTemplate on first switch).
 -- Only copies when: RetainTemplate is true, source has enabled buffs, and dest is "fresh" (no data or no buffs enabled).
 -- Does not copy blank templates, so users cannot accidentally overwrite a configured template with a blank one.
-local function MaybeCopyTemplateOnFirstSwitch(fromT, toT)
-  if (not B or not B[CS()] or not B[CS()][fromT]) then return; end
+local function maybeCopyTemplateOnFirstSwitch(fromT, toT)
+  if (not buffsTemplateTable(fromT)) then return; end
   if (not O or not O.RetainTemplate) then return; end
   if (not templateHasEnabledBuffs(fromT)) then return; end  -- do not copy blank over configured
   -- Dest is "fresh" if nil/empty or has no enabled buffs
-  if (B[CS()][toT] and templateHasEnabledBuffs(toT)) then return; end  -- dest already has enabled buffs, not fresh
+  if (buffsTemplateTable(toT) and templateHasEnabledBuffs(toT)) then return; end  -- dest already has enabled buffs, not fresh
 
-  local src = B[CS()][fromT];
-  B[CS()][toT] = B[CS()][toT] or {};
-  local dst = B[CS()][toT];
+  local src = buffsTemplateTable(fromT);
+  local spec = buffsSpecTable();
+  spec[toT] = spec[toT] or {};
+  local dst = spec[toT];
 
   for k, v in pairs(src) do
     if (type(v) == "table") then
@@ -1288,7 +1361,7 @@ function SMARTBUFF_SetTemplate(force)
 
   -- Ensure currentTemplate is set (fallback to Solo if nil)
   if (currentTemplate == nil) then
-    currentTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo];
+    currentTemplate = smartBuffTemplateForGroupKey("Solo") or (SMARTBUFF_TEMPLATES and SMARTBUFF_TEMPLATES[1]);
   end
 
   local newTemplate = currentTemplate -- default to old template
@@ -1303,22 +1376,22 @@ function SMARTBUFF_SetTemplate(force)
 
     -- Check by type in enum order; difficultyID first (Horrific Vision, Delve) since they can overlap party/raid
     if difficultyID == 152 then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.HorrificVision]
+      newTemplate = smartBuffTemplateForGroupKey("HorrificVision")
       switchReason = "horrific vision"
     elseif difficultyID == 208 then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Delve]
+      newTemplate = smartBuffTemplateForGroupKey("Delve")
       switchReason = "delve"
     elseif instanceType == "party" then
       if difficultyID == 8 then
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.MythicKeystone]
+        newTemplate = smartBuffTemplateForGroupKey("MythicKeystone")
         switchReason = "mythic keystone"
       else
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+        newTemplate = smartBuffTemplateForGroupKey("Party")
         switchReason = "party"
       end
     elseif instanceType == "raid" then
       if LfgDungeonID then
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.LFR]
+        newTemplate = smartBuffTemplateForGroupKey("LFR")
         switchReason = "LFR"
       elseif O.AutoSwitchTemplateInst then
         -- instName from GetInstanceInfo is localized; match directly in assembled SMARTBUFF_TEMPLATES
@@ -1329,18 +1402,18 @@ function SMARTBUFF_SetTemplate(force)
           switchReason = "instance"
         end
         if not isRaidInstanceTemplate then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         end
       else
-        newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+        newTemplate = smartBuffTemplateForGroupKey("Raid")
         switchReason = "raid"
       end
     elseif instanceType == "pvp" then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Battleground] or SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+      newTemplate = smartBuffTemplateForGroupKey("Battleground") or smartBuffTemplateForGroupKey("Solo")
       switchReason = "battleground"
     elseif instanceType == "arena" then
-      newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Arena] or SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+      newTemplate = smartBuffTemplateForGroupKey("Arena") or smartBuffTemplateForGroupKey("Solo")
       switchReason = "arena"
     end
 
@@ -1359,25 +1432,25 @@ function SMARTBUFF_SetTemplate(force)
       if instanceType and instanceType ~= "none" then
         -- In an instance but no template matched; use group context if available
         if IsInRaid() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         elseif IsInGroup() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+          newTemplate = smartBuffTemplateForGroupKey("Party")
           switchReason = "party"
         else
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+          newTemplate = smartBuffTemplateForGroupKey("Solo")
           switchReason = "unknown instance"
         end
       else
         -- Open world
         if IsInRaid() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]
+          newTemplate = smartBuffTemplateForGroupKey("Raid")
           switchReason = "raid"
         elseif IsInGroup() then
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party]
+          newTemplate = smartBuffTemplateForGroupKey("Party")
           switchReason = "party"
         else
-          newTemplate = SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Solo]
+          newTemplate = smartBuffTemplateForGroupKey("Solo")
           switchReason = "solo"
         end
       end
@@ -1385,7 +1458,7 @@ function SMARTBUFF_SetTemplate(force)
   end
 
   if currentTemplate ~= newTemplate then
-    MaybeCopyTemplateOnFirstSwitch(currentTemplate, newTemplate);
+    maybeCopyTemplateOnFirstSwitch(currentTemplate, newTemplate);
     SMARTBUFF_AddMsgD("Current tmpl: " .. currentTemplate or "nil" .. " - new tmpl: " .. newTemplate or "nil");
     local reason = switchReason or "instance"
     SMARTBUFF_AddMsg(SMARTBUFF_TITLE .. ": " .. SMARTBUFF_OFT_AUTOSWITCHTMP .. " (" .. reason .. ") " .. currentTemplate .. " -> " .. newTemplate);
@@ -1405,8 +1478,8 @@ function SMARTBUFF_SetTemplate(force)
   wipe(cIgnoreUnitList);
 
   -- Raid Setup (or Arena/BG when in raid)
-  local isArenaOrBG = (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Arena]) or currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Battleground]));
-  if (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Raid]) or isRaidInstanceTemplate) or (isArenaOrBG and IsInRaid()) then
+  local isArenaOrBG = (currentTemplate == smartBuffTemplateForGroupKey("Arena")) or (currentTemplate == smartBuffTemplateForGroupKey("Battleground"));
+  if (currentTemplate == smartBuffTemplateForGroupKey("Raid") or isRaidInstanceTemplate) or (isArenaOrBG and IsInRaid()) then
     cClassGroups = {};
     local name, server, rank, subgroup, level, class, classeng, zone, online, isDead;
     local sRUnit = nil;
@@ -1427,8 +1500,8 @@ function SMARTBUFF_SetTemplate(force)
         --SMARTBUFF_AddMsgD(name .. ", " .. sRUnit .. ", " .. UnitName(sRUnit));
 
         SMARTBUFF_AddUnitToClass("raid", n);
-        SmartBuff_AddToUnitList(1, sRUnit, subgroup);
-        SmartBuff_AddToUnitList(2, sRUnit, subgroup);
+        SMARTBUFF_AddToUnitList(1, sRUnit, subgroup);
+        SMARTBUFF_AddToUnitList(2, sRUnit, subgroup);
 
         if (name == sPlayerName and not server) then
           psg = subgroup;
@@ -1448,11 +1521,12 @@ function SMARTBUFF_SetTemplate(force)
         -- attempt to announce the addon version (if they have it)
         -- seems to be an issue with cross-realm, need to look at this later
         -- but in the meantime I am disabling it...  CM
-        -- if online then SendSmartbuffVersion(name, sRUnit) end
+        -- if online then sendSmartbuffVersion(name, sRUnit) end
       end
     end --end for
 
-    if (not b or B[CS()][currentTemplate].SelfFirst) then
+    local curTm = buffsTemplateTable(currentTemplate);
+    if (not b or (curTm and curTm.SelfFirst)) then
       SMARTBUFF_AddSoloSetup();
       --SMARTBUFF_AddMsgD("Player not in selected groups or buff self first");
     end
@@ -1460,9 +1534,10 @@ function SMARTBUFF_SetTemplate(force)
     SMARTBUFF_AddMsgD("Raid Unit-Setup finished");
 
     -- Party Setup (or Arena/BG when in party)
-  elseif (currentTemplate == (SMARTBUFF_TEMPLATES[Enum.SmartBuffGroup.Party])) or (isArenaOrBG and IsInGroup()) then
+  elseif (currentTemplate == smartBuffTemplateForGroupKey("Party")) or (isArenaOrBG and IsInGroup()) then
     cClassGroups = {};
-    if (B[CS()][currentTemplate].SelfFirst) then
+    local curTm = buffsTemplateTable(currentTemplate);
+    if (curTm and curTm.SelfFirst) then
       SMARTBUFF_AddSoloSetup();
       --SMARTBUFF_AddMsgD("Buff self first");
     end
@@ -1473,10 +1548,10 @@ function SMARTBUFF_SetTemplate(force)
     for j = 1, 4, 1 do
       cGroups[1][j] = "party" .. j;
       SMARTBUFF_AddUnitToClass("party", j);
-      SmartBuff_AddToUnitList(1, "party" .. j, 1);
-      SmartBuff_AddToUnitList(2, "party" .. j, 1);
+      SMARTBUFF_AddToUnitList(1, "party" .. j, 1);
+      SMARTBUFF_AddToUnitList(2, "party" .. j, 1);
       name, _, _, _, _, _, _, online, _, _ = GetRaidRosterInfo(j);
-      if name and online then SendSmartbuffVersion(name, "party") end
+      if name and online then sendSmartbuffVersion(name, "party") end
     end
     SMARTBUFF_AddMsgD("Party Unit-Setup finished");
 
@@ -1520,7 +1595,8 @@ function SMARTBUFF_AddSoloSetup()
   if (sPlayerClass == "HUNTER" or sPlayerClass == "WARLOCK" or sPlayerClass == "DEATHKNIGHT" or sPlayerClass == "MAGE") then cGroups[0][1] =
     "pet"; end
 
-  if (B[CS()][currentTemplate] and B[CS()][currentTemplate].SelfFirst) then
+  local curTm = buffsTemplateTable(currentTemplate);
+  if (curTm and curTm.SelfFirst) then
     if (not cClassGroups) then
       cClassGroups = {};
     end
@@ -1709,8 +1785,8 @@ function SMARTBUFF_SetBuffs()
   local buff = nil;
   local ct = currentTemplate;
 
-  if (B[CS()] == nil) then
-    B[CS()] = {};
+  if (B[getCurrentSpec()] == nil) then
+    B[getCurrentSpec()] = {};
   end
 
   -- Load cache for verification
@@ -1779,12 +1855,9 @@ function SMARTBUFF_SetBuffs()
     -- Toys will only reload when NEW_TOY_ADDED event fires
   end
 
-  if (B[CS()][ct] == nil) then
-    B[CS()][ct] = {};
-    B[CS()][ct].SelfFirst = false;
-  end
+  ensureBuffsTemplateTable(ct);
 
-  CleanBuffSettingsCruft();
+  cleanBuffSettingsCruft();
 
   wipe(cBuffs);
   wipe(cBuffIndex);
@@ -1840,15 +1913,16 @@ function SMARTBUFF_SetBuffs()
   -- For items use only canonical key "item:ID" and that entry's state so duplicate keys (link vs canonical) don't both get added
   local enabledBuffsSnapshot = {};
   local seenItemIDs = {};
-  if (B[CS()] and B[CS()][ct]) then
-    for buffName, settings in pairs(B[CS()][ct]) do
+  local tmSnap = buffsTemplateTable(ct);
+  if (tmSnap) then
+    for buffName, settings in pairs(tmSnap) do
       if (type(settings) == "table" and (settings.EnableS or settings.EnableG)) then
         local id = (type(buffName) == "string") and tonumber(string.match(buffName, "item:(%d+)"));
         if (id) then
           if (not seenItemIDs[id]) then
             seenItemIDs[id] = true;
             local canonical = "item:" .. tostring(id);
-            local entry = B[CS()][ct][canonical] or settings;
+            local entry = tmSnap[canonical] or settings;
             if (type(entry) == "table" and (entry.EnableS or entry.EnableG)) then
               tinsert(enabledBuffsSnapshot, canonical);
             end
@@ -1860,7 +1934,7 @@ function SMARTBUFF_SetBuffs()
     end
   end
   SMARTBUFF_SaveCache(currentCounts, enabledBuffsSnapshot, toyCount, ct);
-  InitBuffOrder(false);
+  initBuffOrder(false);
 
   -- Redraw options buff list if open so item/spell names appear when data loads (no close/reopen needed)
   if (SmartBuffOptionsFrame and SmartBuffOptionsFrame:IsVisible()) then SMARTBUFF_BuffOrderOnScroll(); end
@@ -1873,7 +1947,7 @@ end
 
 -- Helper function to extract itemID from itemLink string or itemID number
 -- Returns itemID (number) or nil
-local function ExtractItemID(item)
+local function extractItemID(item)
   if (type(item) == "number") then
     return item;
   elseif (type(item) == "string") then
@@ -1883,9 +1957,9 @@ local function ExtractItemID(item)
 end
 
 -- O(1) minLevel/texture from SmartBuffItemSpellCache (avoids pairs(cache.items) per buff row).
-local function GetItemSpellCacheMinLevelTexture(cache, buffLink)
+local function getItemSpellCacheMinLevelTexture(cache, buffLink)
   if (not cache or not cache.itemData or not buffLink) then return nil, nil; end
-  local id = ExtractItemID(buffLink);
+  local id = extractItemID(buffLink);
   if (not id) then return nil, nil; end
   if (not cache.varNameByItemID) then
     SMARTBUFF_ItemCacheRebuildVarNameByItemID(cache);
@@ -1900,7 +1974,7 @@ end
 -- Helper for UI display: resolve spell/item IDs and varNames to display names using cache first, then API.
 -- buffType (optional): when provided and SMARTBUFF_IsItem(buffType), resolve numeric/ID as item only;
 -- when spell-like, spell only; when nil, keep current fallback.
-local function GetBuffDisplayName(buffName, buffType)
+local function getBuffDisplayName(buffName, buffType)
   if (buffName == nil) then return nil; end
 
   local cache = SmartBuffItemSpellCache;
@@ -1964,7 +2038,7 @@ local function GetBuffDisplayName(buffName, buffType)
     local itemID = nil;
     local isItemKey = string.match(buffName, "^item:%d+");
     if (isItemKey) then
-      itemID = ExtractItemID(buffName);
+      itemID = extractItemID(buffName);
     else
       local num = tonumber(buffName);
       if (num and tostring(num) == buffName) then
@@ -2054,7 +2128,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
   if (type(buff[1]) == "number" and buff[1] > 0) then
     itemID = buff[1];
   elseif (type(buff[1]) == "string") then
-    itemID = ExtractItemID(buff[1]);
+    itemID = extractItemID(buff[1]);
   end
   local key = (type(buff[1]) == "string") and buff[1] or nil;
   -- Dedupe item-type buffs: same key or same canonical item ID (avoids duplicate potion/flask/food entries)
@@ -2135,7 +2209,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
   cBuffs[i].SingleTargetGroup = (buff[8] == "single") and "single" or nil;
 
   -- Warlock Nether Ward fix
-  --if (cBuffs[i].BuffS == SMARTBUFF_SHADOWWARD and IsTalentSkilled(3, 13, SMARTBUFF_NETHERWARD)) then
+  --if (cBuffs[i].BuffS == SMARTBUFF_SHADOWWARD and isTalentSkilled(3, 13, SMARTBUFF_NETHERWARD)) then
   --  cBuffs[i].BuffS = SMARTBUFF_NETHERWARD;
   --end
 
@@ -2173,7 +2247,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
       local minLevel, texture = nil, nil;
       local cache = SmartBuffItemSpellCache;
       if (cache and cache.itemData) then
-        minLevel, texture = GetItemSpellCacheMinLevelTexture(cache, cBuffs[i].BuffS);
+        minLevel, texture = getItemSpellCacheMinLevelTexture(cache, cBuffs[i].BuffS);
       end
 
       -- If not in cache, try API call
@@ -2185,13 +2259,13 @@ function SMARTBUFF_SetBuff(buff, i, ia)
 
       if (minLevel == nil) then
         -- Item data not loaded yet - request loading and keep buff (AllTheThings pattern: accept partial data)
-        local itemID = ExtractItemID(cBuffs[i].BuffS);
+        local itemID = extractItemID(cBuffs[i].BuffS);
         if (itemID) then
           C_Item.RequestLoadItemDataByID(itemID);
         end
         -- Keep buff in list - will be validated when ITEM_DATA_LOAD_RESULT fires
         cBuffs[i].IconS = nil;  -- No texture yet
-      elseif (not IsMinLevel(minLevel)) then
+      elseif (not isMinLevel(minLevel)) then
         cBuffs[i] = nil;
         return i;
       else
@@ -2204,7 +2278,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
       local minLevel, texture = nil, nil;
       local cache = SmartBuffItemSpellCache;
       if (cache and cache.itemData) then
-        minLevel, texture = GetItemSpellCacheMinLevelTexture(cache, cBuffs[i].BuffS);
+        minLevel, texture = getItemSpellCacheMinLevelTexture(cache, cBuffs[i].BuffS);
       end
 
       -- If not in cache, try API call
@@ -2217,13 +2291,13 @@ function SMARTBUFF_SetBuff(buff, i, ia)
       SMARTBUFF_AddMsgD("  GetItemInfo(BuffS) minLevel: " .. tostring(minLevel));
       if (minLevel == nil) then
         -- Item data not loaded yet - request loading and keep buff (AllTheThings pattern: accept partial data)
-        local itemID = ExtractItemID(cBuffs[i].BuffS);
+        local itemID = extractItemID(cBuffs[i].BuffS);
         if (itemID) then
           C_Item.RequestLoadItemDataByID(itemID);
           SMARTBUFF_AddMsgD("  Item data not loaded yet, requested loading (itemID: " .. itemID .. ")");
         end
         -- Keep buff in list - will be validated when ITEM_DATA_LOAD_RESULT fires
-      elseif (not IsMinLevel(minLevel)) then
+      elseif (not isMinLevel(minLevel)) then
         SMARTBUFF_AddMsgD("  Filtered out: level requirement not met");
         cBuffs[i] = nil;
         return i;
@@ -2232,7 +2306,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
       local itemList = cBuffs[i].Chain or cBuffs[i].Links;
       local searchChain = itemList;
       if (itemList and #itemList > 1) then
-        local requestedID = ExtractItemID(cBuffs[i].BuffS);
+        local requestedID = extractItemID(cBuffs[i].BuffS);
         if (requestedID) then
           searchChain = { requestedID };
         end
@@ -2255,7 +2329,7 @@ function SMARTBUFF_SetBuff(buff, i, ia)
             local iconList = cBuffs[i].Chain or cBuffs[i].Links;
             if (iconList and #iconList > 0) then
               -- Try first item in list for texture
-              local itemID = ExtractItemID(iconList[1]);
+              local itemID = extractItemID(iconList[1]);
               if (itemID) then
                 local _, _, _, _, _, _, _, _, _, chainTexture = C_Item.GetItemInfo(itemID);
                 if (chainTexture) then
@@ -2315,14 +2389,14 @@ function SMARTBUFF_SetBuff(buff, i, ia)
   ]] --
   cBuffIndex[cBuffs[i].BuffS] = i;
   -- Register canonical item key so template / lookups find this buff when key is "item:ID"
-  local itemID = ExtractItemID(cBuffs[i].BuffS);
+  local itemID = extractItemID(cBuffs[i].BuffS);
   if (itemID) then
     cBuffIndex["item:" .. tostring(itemID)] = i;
   end
   if (cBuffs[i].IDG ~= nil) then
     cBuffIndex[cBuffs[i].BuffG] = i;
   end
-  InitBuffSettings(cBuffs[i]);
+  initBuffSettings(cBuffs[i]);
 
   return i + 1;
 end
@@ -2441,7 +2515,7 @@ function SMARTBUFF_PreCheck(mode, force)
   end
 
   -- Don't run the check loop until buff list is ready (missing B/Order, or Order has entries but cBuffs wasn't built)
-  if (not B or not B[CS()] or not B[CS()].Order or (numBuffs == 0 and next(B[CS()].Order))) then
+  if (not B or not B[getCurrentSpec()] or not B[getCurrentSpec()].Order or (numBuffs == 0 and next(B[getCurrentSpec()].Order))) then
     SMARTBUFF_ScheduleSetBuffs();
     if (O.HideSAIfIdle and not InCombatLockdown() and not UnitAffectingCombat("player")) then
       SMARTBUFF_RefreshSAButtonIdleState(false);
@@ -2537,7 +2611,7 @@ function SMARTBUFF_ResetBuffTimers()
             buff = nil;
             rbTime = 0;
             buffS = cBuffs[i].BuffS;
-            local bs = GetBuffSettings(buffS);
+            local bs = getBuffSettings(buffS);
 
             if (bs) then rbTime = bs.RBTime or 0; end
             if (rbTime <= 0) then
@@ -2610,7 +2684,7 @@ function SMARTBUFF_ShowBuffTimers()
           i = i + 1;
         end
 
-        local bs = buffS and GetBuffSettings(buffS);
+        local bs = buffS and getBuffSettings(buffS);
         if (buffS and bs) then
           if (d > 0) then
             rbTime = bs.RBTime or 0;
@@ -2657,7 +2731,7 @@ function SMARTBUFF_SyncBuffTimers()
   isSync = true;
   tSync = GetTime();
 
-  local ct = CT();
+  local ct = getCurrentTemplate();
   local rbTime = 0;
   local i = 0;
   local buffS = nil;
@@ -2675,7 +2749,7 @@ function SMARTBUFF_SyncBuffTimers()
           while (cBuffs[i] and cBuffs[i].BuffS) do
             rbTime = 0;
             buffS = cBuffs[i].BuffS;
-            local bs = GetBuffSettings(buffS);
+            local bs = getBuffSettings(buffS);
 
             if (bs and bs.RBTime ~= nil) then
               rbTime = bs.RBTime;
@@ -2710,7 +2784,7 @@ function SMARTBUFF_SyncBuffTimer(unit, grp, cBuff)
     local ret, _, _, timeleft = SMARTBUFF_CheckUnitBuffs(unit, buff, cBuff.Type, cBuff.Links, cBuff.Chain);
     if (ret == nil and timeleft ~= nil) then
       if (not cBuffTimer[grp]) then cBuffTimer[grp] = {} end
-      st = Round(t - d + timeleft, 2);
+      st = round(t - d + timeleft, 2);
       if (not cBuffTimer[grp][buff] or (cBuffTimer[grp][buff] and cBuffTimer[grp][buff] ~= st)) then
         cBuffTimer[grp][buff] = st;
         if (timeleft > 60) then
@@ -2761,11 +2835,12 @@ end
 function SMARTBUFF_PopulateBGResQueue()
   wipe(cBuffsToCastAfterBGRes);
   local ct = currentTemplate;
-  if (not B or not B[CS()] or not B[CS()][ct] or not B[CS()].Order or not cBuffIndex) then return; end
-  local ord = B[CS()].Order;
+  local ord = buffsTemplateOrder();
+  local tm = buffsTemplateTable(ct);
+  if (not ord or not tm or not cBuffIndex) then return; end
   for _, buffnS in ipairs(ord) do
     local cBuff = cBuffs[cBuffIndex[buffnS]];
-    local bs = GetBuffSettings(buffnS);
+    local bs = getBuffSettings(buffnS);
     if (cBuff and bs and bs.EnableS and cBuff.Type ~= SMARTBUFF_CONST_TRACK) then
       if (cBuff.IDS and not SMARTBUFF_IsItem(cBuff.Type) and not bs.SkipBGResQueue) then
         tinsert(cBuffsToCastAfterBGRes, { actionType = SMARTBUFF_ACTION_SPELL, spellName = buffnS, slot = -1 });
@@ -2780,13 +2855,14 @@ end
 function SMARTBUFF_BuildInCombatCInEntryList()
   local list = {};
   local ct = currentTemplate;
-  if (not B or not B[CS()] or not B[CS()][ct] or not B[CS()].Order or not cBuffIndex) then return list; end
-  local ord = B[CS()].Order;
+  local ord = buffsTemplateOrder();
+  local tm = buffsTemplateTable(ct);
+  if (not ord or not tm or not cBuffIndex) then return list; end
   for _, buffnS in ipairs(ord) do
     local cBuff = cBuffs[cBuffIndex[buffnS]];
-    local bs = GetBuffSettings(buffnS);
+    local bs = getBuffSettings(buffnS);
     if (cBuff and bs and bs.EnableS and cBuff.Type ~= SMARTBUFF_CONST_TRACK) then
-      if (B[CS()][ct][buffnS] and B[CS()][ct][buffnS].CIn) then
+      if (bs and bs.CIn) then
         if (cBuff.IDS and not SMARTBUFF_IsItem(cBuff.Type)) then
           tinsert(list, { actionType = SMARTBUFF_ACTION_SPELL, spellName = buffnS, slot = -1 });
         end
@@ -2839,7 +2915,7 @@ end
 -- Turn off in-combat castsequence tracking and clear SmartBuff_KeyButton secure attrs when not in combat lockdown.
 function SMARTBUFF_DisableInCombatCastsequenceMacro()
   inCombatCastsequenceActive = false;
-  SMARTBUFF_ResetInCombatCastsequenceProgress();
+  resetInCombatCastsequenceProgress();
   if (InCombatLockdown() or not SmartBuff_KeyButton) then return; end
   SmartBuff_KeyButton:SetAttribute("type", nil);
   SmartBuff_KeyButton:SetAttribute("unit", nil);
@@ -2855,7 +2931,7 @@ end
 function SMARTBUFF_EnableInCombatCastsequenceMacroFromEntries(filteredEntries)
   if (InCombatLockdown() or not SmartBuff_KeyButton) then return false; end
   inCombatCastsequenceActive = false;
-  SMARTBUFF_ResetInCombatCastsequenceProgress();
+  resetInCombatCastsequenceProgress();
   if (not filteredEntries or #filteredEntries == 0) then
     return false;
   end
@@ -2981,7 +3057,7 @@ function SMARTBUFF_NotifyInCombatCastsequenceVisual(mode)
   lastInCombatCastsequenceNotifyKey = spellKey;
   lastInCombatCastsequenceNotifyAt = now;
   local target = UnitName("player") or "player";
-  -- Same path as BuffUnit: spell name + short "in combat" tag (localized); GetBuffDisplayName in SetMissingBuffMessage.
+  -- Same path as BuffUnit: spell name + short "in combat" tag (localized); getBuffDisplayName in SetMissingBuffMessage.
   local combatTag = SMARTBUFF_MSG_CASTSEQUENCE_SUFFIX;
   if (combatTag == nil) then
     combatTag = " (in-combat)";
@@ -3005,7 +3081,7 @@ function SMARTBUFF_NotifyInCombatCastsequenceReminders(mode)
 end
 
 local IsChecking = false;
-local function SMARTBUFF_CheckFinish(hasPending)
+local function checkFinish(hasPending)
   IsChecking = false;
   if (O and O.HideSAIfIdle) then
     SMARTBUFF_RefreshSAButtonIdleState(hasPending);
@@ -3039,7 +3115,7 @@ function SMARTBUFF_Check(mode, force)
   local reagent;
   local nGlobal = 0;
 
-  SMARTBUFF_checkBlocklist();
+  SMARTBUFF_CheckBlocklist();
 
   -- Retail fact: (1) PvP match active — buffs secret to addons whether OOC or IC. (2) Outside PvP — secret in combat,
   -- visible OOC. skipChecks during match skips aura-based scan; BGRes + castsequence paths do not rely on match auras.
@@ -3062,12 +3138,12 @@ function SMARTBUFF_Check(mode, force)
   if (inPvPInstance and pvPMatchActive and cBuffsToCastAfterBGRes and #cBuffsToCastAfterBGRes > 0) then
     local entry = cBuffsToCastAfterBGRes[1];
     if (entry and entry.actionType and entry.spellName) then
-      SMARTBUFF_CheckFinish(true);
+      checkFinish(true);
       return 0, entry.actionType, entry.spellName, entry.slot or -1, "player", nil, true;  -- 7th = isBGRes
     end
   end
   if skipChecks then
-    SMARTBUFF_CheckFinish(false);
+    checkFinish(false);
     return;
   end
 
@@ -3080,7 +3156,7 @@ function SMARTBUFF_Check(mode, force)
       if (i == 0 and InCombatLockdown() and not O.InCombat) then
         -- skip
       else
-        SMARTBUFF_CheckFinish(true);
+        checkFinish(true);
         return i, actionType, spellName, slot, "target", buffType;
       end
     end
@@ -3125,7 +3201,7 @@ function SMARTBUFF_Check(mode, force)
                     --tLastCheck = tLastCheck + 2;
                   end
                 end
-                SMARTBUFF_CheckFinish(true);
+                checkFinish(true);
                 return i, actionType, spellName, slot, unit, buffType;
               end
             end
@@ -3144,7 +3220,7 @@ function SMARTBUFF_Check(mode, force)
     end
   end
   --tLastCheck = GetTime();
-  SMARTBUFF_CheckFinish(false);
+  checkFinish(false);
 end
 
 -- END SMARTBUFF_Check
@@ -3199,7 +3275,7 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
   if (UnitExists(unit) and UnitIsFriend("player", unit) and not UnitIsDeadOrGhost(unit) and not UnitIsCorpse(unit)
         and UnitIsConnected(unit) and UnitIsVisible(unit) and not UnitOnTaxi(unit) and not cBlocklist[unit]
         and ((not UnitIsPVP(unit) and (not isPvP or O.BuffPvP)) or (UnitIsPVP(unit) and (isPvP or O.BuffPvP)))) then
-    --and not SmartBuff_UnitIsIgnored(unit)
+    --and not SMARTBUFF_UnitIsIgnored(unit)
 
     --print("Prep Check");
 
@@ -3216,12 +3292,12 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
     isShapeshifted, sShapename = SMARTBUFF_IsShapeshifted();
     -- sShapename is spellInfo array
     --while (cBuffs[i] and cBuffs[i].BuffS) do
-    for i, buffnS in pairs(B[CS()].Order) do
+    for i, buffnS in pairs(B[getCurrentSpec()].Order) do
       --print(buffnS)
       if (isSetBuffs or SmartBuffOptionsFrame:IsVisible()) then break; end
       cBuff = cBuffs[cBuffIndex[buffnS]];
       --buffnS = cBuff.BuffS;
-      bs = GetBuffSettings(buffnS);
+      bs = getBuffSettings(buffnS);
       bExpire = false;
       handtype = "";
       charges = -1;
@@ -3291,10 +3367,10 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
         local isUsable, notEnoughMana = C_Spell.IsSpellUsable(castBuffnS);
         if (notEnoughMana) then
           bUsable = false;
-          SMARTBUFF_AddMsgD("Buff " .. (GetBuffDisplayName(cBuff.BuffS, cBuff.Type) or cBuff.BuffS) .. ", not enough mana!");
+          SMARTBUFF_AddMsgD("Buff " .. (getBuffDisplayName(cBuff.BuffS, cBuff.Type) or cBuff.BuffS) .. ", not enough mana!");
         elseif (mode ~= 1 and isUsable == nil and buffnS ~= SMARTBUFF_PWS.name) then
           bUsable = false;
-          SMARTBUFF_AddMsgD("Buff " .. (GetBuffDisplayName(cBuff.BuffS, cBuff.Type) or cBuff.BuffS) .. " is not usable!");
+          SMARTBUFF_AddMsgD("Buff " .. (getBuffDisplayName(cBuff.BuffS, cBuff.Type) or cBuff.BuffS) .. " is not usable!");
         end
       end
 
@@ -3335,7 +3411,7 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
               rbTime = O.RebuffTimer;
             end
 
-            SMARTBUFF_AddMsgD(uc .. " " .. CT());
+            SMARTBUFF_AddMsgD(uc .. " " .. getCurrentTemplate());
 
             -- Note: Only players (and pets) are valid targets for group buffs; NPCs do not benefit from buffs.
             if (not SMARTBUFF_IsInList(unit, un, bs.IgnoreList) and (((cBuff.Type == SMARTBUFF_CONST_GROUP or cBuff.Type == SMARTBUFF_CONST_ITEMGROUP)
@@ -3696,7 +3772,7 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
                         local itemInfo = C_Item.GetItemInfo(buffnS);
                         if (not itemInfo) then
                           -- Item data not loaded - request loading (AllTheThings pattern)
-                          local itemID = ExtractItemID(buffnS);
+                          local itemID = extractItemID(buffnS);
                           if (itemID) then
                             C_Item.RequestLoadItemDataByID(itemID);
                           end
@@ -3740,7 +3816,7 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
                     SMARTBUFF_AddMsgD("  FindItem result: count=" .. tostring(count) .. ", bag=" .. tostring(bag) .. ", slot=" .. tostring(slot));
                     if (count == 0) then
                       SMARTBUFF_AddMsgD("  Item not found (count=0), attempting to cast: " .. buffnS .. " (IDS: " .. tostring(cBuff.IDS) .. ")");
-                      r = SMARTBUFF_doCast(unit, cBuff.IDS, buffnS, cBuff.LevelsS, cBuff.Type);
+                      r = SMARTBUFF_DoCast(unit, cBuff.IDS, buffnS, cBuff.LevelsS, cBuff.Type);
                       SMARTBUFF_AddMsgD("  doCast result: " .. tostring(r));
                       if (r == 0) then
                         currentUnit = unit;
@@ -3754,7 +3830,7 @@ function SMARTBUFF_BuffUnit(unit, subgroup, mode, spell)
 
                     -- cast spell (castSpellID / castBuffnS = effective spell for this pass, not mutating cBuff)
                   else
-                    r = SMARTBUFF_doCast(unit, castSpellID, castBuffnS, cBuff.LevelsS, cBuff.Type);
+                    r = SMARTBUFF_DoCast(unit, castSpellID, castBuffnS, cBuff.LevelsS, cBuff.Type);
                     if (r == 0) then
                       currentUnit = unit;
                       currentSpell = castBuffnS;
@@ -3883,7 +3959,7 @@ end
 
 function SMARTBUFF_SetMissingBuffMessage(target, buff, icon, bCanCharge, nCharges, tBuffTimeLeft, bExpire)
   -- Resolve "item:ID" to display name/link for splash and chat (canonical key is stored; show name to user)
-  local displayBuff = (buff and GetBuffDisplayName(buff, nil)) or buff;
+  local displayBuff = (buff and getBuffDisplayName(buff, nil)) or buff;
 
   local f = SmartBuffSplashFrame;
   -- show splash buff message
@@ -4123,7 +4199,7 @@ end
 
 
 -- Check the unit blocklist
-function SMARTBUFF_checkBlocklist()
+function SMARTBUFF_CheckBlocklist()
   local t = GetTime();
   for unit in pairs(cBlocklist) do
     if (t > (cBlocklist[unit] + O.BlocklistTimer)) then
@@ -4132,11 +4208,11 @@ function SMARTBUFF_checkBlocklist()
   end
 end
 
--- END SMARTBUFF_checkBlocklist
+-- END SMARTBUFF_CheckBlocklist
 
 
 -- Casts a spell
-function SMARTBUFF_doCast(unit, id, spellName, levels, buffType)
+function SMARTBUFF_DoCast(unit, id, spellName, levels, buffType)
   SMARTBUFF_AddMsgD("doCast spellName "..spellName);
   if (id == nil) then return 9; end
   if (buffType == SMARTBUFF_CONST_TRACK and (GetTrackingTexture() ~= "Interface\\Minimap\\Tracking\\None")) then
@@ -4161,7 +4237,7 @@ function SMARTBUFF_doCast(unit, id, spellName, levels, buffType)
   end
 
   -- Rangecheck
-  --SMARTBUFF_AddMsgD("Spell has range: "..spellName.." = "..ChkS(SpellHasRange(spellName)));
+  --SMARTBUFF_AddMsgD("Spell has range: "..spellName.." = "..chkS(SpellHasRange(spellName)));
   if (buffType == SMARTBUFF_CONST_GROUP or buffType == SMARTBUFF_CONST_ITEMGROUP) then
     if (C_Spell.SpellHasRange(spellName)) then
       if (not C_Spell.IsSpellInRange(spellName, unit)) then
@@ -4184,7 +4260,7 @@ function SMARTBUFF_doCast(unit, id, spellName, levels, buffType)
   return 0;
 end
 
--- END SMARTBUFF_doCast
+-- END SMARTBUFF_DoCast
 
 -- checks if the unit is the player
 function SMARTBUFF_IsPlayer(unit)
@@ -4198,7 +4274,7 @@ end
 
 
 -- Returns buff data if buffname found on target; nil otherwise. Uses C_UnitAuras (Retail).
-function UnitBuffByBuffName(target, buffname, filter)
+function SMARTBUFF_UnitBuffByBuffName(target, buffname, filter)
   local maxAuras = 40;  -- WoW API limit: aura index 1..40 per unit; GetAuraDataByIndex returns nil past last aura
 
   for auraIndex = 1, maxAuras do
@@ -4226,7 +4302,7 @@ function SMARTBUFF_AnyEligibleGroupUnitHasMyBuff(subgroup, buffnS, bs)
   if (not subgroup or not buffnS or not cGroups or not cGroups[subgroup]) then return false end
   for _, u in pairs(cGroups[subgroup]) do
     if (u and UnitExists(u) and UnitPlayerControlled(u)) then
-      local _, _, _, _, _, _, src = UnitBuffByBuffName(u, buffnS, "HELPFUL");
+      local _, _, _, _, _, _, src = SMARTBUFF_UnitBuffByBuffName(u, buffnS, "HELPFUL");
       if (src and UnitIsUnit("player", src)) then
         if (not bs) then return true end
         local un = UnitName(u);
@@ -4277,13 +4353,13 @@ function SMARTBUFF_CheckUnitBuffs(unit, buffN, buffT, buffL, buffC)
   n = cBuffIndex[defBuff];
   if (cBuffs[n] and cBuffs[n].Type == SMARTBUFF_CONST_STANCE) then
     if (defBuff and buffC and #buffC >= 1) then
-      local t = B[CS()].Order;
+      local t = B[getCurrentSpec()].Order;
       if (t and #t >= 1) then
         --SMARTBUFF_AddMsgD("Check chained stance: "..defBuff);
         for i = 1, #t, 1 do
           --print("Check for chained stance: "..t[i]);
-          if (t[i] and ChainContains(buffC, t[i])) then
-            v = GetBuffSettings(t[i]);
+          if (t[i] and chainContains(buffC, t[i])) then
+            v = getBuffSettings(t[i]);
             if (v and v.EnableS) then
               for n = 1, GetNumShapeshiftForms(), 1 do
                 local _, name, active, castable = GetShapeshiftFormInfo(n);
@@ -4323,10 +4399,10 @@ function SMARTBUFF_CheckUnitBuffs(unit, buffN, buffT, buffL, buffC)
       -- Do not check linked group buffs
     else
       for n, vt in pairs(buffL) do
-        v = ResolveChainOrLinkEntry(vt);
+        v = resolveChainOrLinkEntry(vt);
         if (v and v ~= defBuff) then
           SMARTBUFF_AddMsgD("Check linked buff (" .. uname .. "): " .. v);
-          buff, icon, count, _, duration, timeleft, caster = UnitBuffByBuffName(unit, v);
+          buff, icon, count, _, duration, timeleft, caster = SMARTBUFF_UnitBuffByBuffName(unit, v);
           if (buff) then
             timeleft = (tonumber(timeleft) or 0) - GetTime();
             if (timeleft > 0) then
@@ -4346,12 +4422,12 @@ function SMARTBUFF_CheckUnitBuffs(unit, buffN, buffT, buffL, buffC)
   if (defBuff and buffC and #buffC > 1) then
     local skipRoguePoisonChain = SMARTBUFF_RogueHasDragonTemperedBlades() and SMARTBUFF_IsRoguePoisonChain(buffC);
     if (not skipRoguePoisonChain) then
-      local t = B[CS()].Order;
+      local t = B[getCurrentSpec()].Order;
       if (t and #t > 1) then
         --SMARTBUFF_AddMsgD("Check chained buff ("..uname.."): "..defBuff);
         for i = 1, #t, 1 do
-          if (t[i] and ChainContains(buffC, t[i])) then
-            v = GetBuffSettings(t[i]);
+          if (t[i] and chainContains(buffC, t[i])) then
+            v = getBuffSettings(t[i]);
             local cBI = cBuffs[cBuffIndex[t[i]]];
             if (v and v.EnableS and cBI) then
               local b, tl, im = SMARTBUFF_CheckBuff(unit, t[i]);
@@ -4373,7 +4449,7 @@ function SMARTBUFF_CheckUnitBuffs(unit, buffN, buffT, buffL, buffC)
   -- Check default buff
   if (defBuff) then
     SMARTBUFF_AddMsgD("Check default buff (" .. uname .. "): " .. defBuff);
-    buff, icon, count, _, duration, timeleft, caster = UnitBuffByBuffName(unit, defBuff);
+    buff, icon, count, _, duration, timeleft, caster = SMARTBUFF_UnitBuffByBuffName(unit, defBuff);
     if (buff) then
       timeleft = (tonumber(timeleft) or 0) - GetTime();
       if (timeleft > 0) then
@@ -4402,10 +4478,10 @@ function SMARTBUFF_CheckBuffLink(unit, defBuff, buffT, buffL)
       -- Do not check linked group buffs
     else
       for n, v in pairs(buffL) do
-        local linkName = ResolveChainOrLinkEntry(v);
+        local linkName = resolveChainOrLinkEntry(v);
         if (linkName and linkName ~= defBuff) then
           SMARTBUFF_AddMsgD("Check linked buff (" .. (UnitName(unit) or "?") .. "): " .. linkName);
-          buff, icon, count, _, duration, timeleft, caster = UnitBuffByBuffName(unit, linkName);
+          buff, icon, count, _, duration, timeleft, caster = SMARTBUFF_UnitBuffByBuffName(unit, linkName);
           if (buff) then
             timeleft = (tonumber(timeleft) or 0) - GetTime();
             if (timeleft > 0) then
@@ -4428,11 +4504,11 @@ function SMARTBUFF_CheckBuffChain(unit, buff, chain)
   if (buff and chain and #chain > 1) then
     local skipRoguePoisonChain = SMARTBUFF_RogueHasDragonTemperedBlades() and SMARTBUFF_IsRoguePoisonChain(chain);
     if (not skipRoguePoisonChain) then
-      local t = B[CS()].Order;
+      local t = B[getCurrentSpec()].Order;
       if (t and #t > 1) then
         SMARTBUFF_AddMsgD("Check chained buff: " .. buff);
         for i = 1, #t, 1 do
-          if (t[i] and t[i] ~= buff and ChainContains(chain, t[i])) then
+          if (t[i] and t[i] ~= buff and chainContains(chain, t[i])) then
             local b, tl, im = SMARTBUFF_CheckBuff(unit, t[i], true);
             if (b and im) then
               SMARTBUFF_AddMsgD("Chained buff found: " .. t[i]);
@@ -4457,7 +4533,7 @@ function SMARTBUFF_UpdateBuffDuration(buff, duration)
 end
 
 -- Returns aura data if spellname found on target; nil otherwise. Uses C_UnitAuras (Retail).
-function UnitAuraBySpellName(target, spellname, filter)
+function SMARTBUFF_UnitAuraBySpellName(target, spellname, filter)
   local maxAuras = 40;  -- WoW API limit: aura index 1..40 per unit; GetAuraDataByIndex returns nil past last aura
 
   for auraIndex = 1, maxAuras do
@@ -4480,7 +4556,7 @@ function SMARTBUFF_CheckBuff(unit, buffName, isMine)
   if (not unit or not buffName) then
     return false, 0;
   end
-  local buff, timeleft, caster = UnitAuraBySpellName(unit, buffName, "HELPFUL");
+  local buff, timeleft, caster = SMARTBUFF_UnitAuraBySpellName(unit, buffName, "HELPFUL");
   if (buff) then
     SMARTBUFF_AddMsgD(UnitName(unit) .. " buff found: " .. buff, 0, 1, 0.5);
     if (buff == buffName) then
@@ -4580,7 +4656,7 @@ function SMARTBUFF_IsFishingPoleEquiped()
   local link = GetInventoryItemLink("player", GetInventorySlotInfo("MainHandSlot"));
   if (not link) then return false end
 
-  local itemID = ExtractItemID(link);
+  local itemID = extractItemID(link);
   local _, _, _, _, _, _, subType = C_Item.GetItemInfo(itemID);
   if (not subType) then
     -- Item data not loaded - request loading (AllTheThings pattern)
@@ -4652,7 +4728,7 @@ end
 --   - totalCount: Sum of all matching items across all bags (for CountReagent)
 --   - itemID: Item ID of first match
 --   - texture: Icon of first match
-local function SMARTBUFF_FindItemInternal(reagent, chain, debug)
+local function findItemInternal(reagent, chain, debug)
   if (reagent == nil) then
     if (debug) then
       SMARTBUFF_AddMsgD("FindItem: reagent is nil");
@@ -4817,7 +4893,7 @@ end
 -- we now search on ItemLink in addition to itemText, in order to support Dragonflight item qualities
 -- Returns: totalCount, itemID (sum of all matches across all bags)
 function SMARTBUFF_CountReagent(reagent, chain)
-  local _, _, _, totalCount, itemID = SMARTBUFF_FindItemInternal(reagent, chain, false);
+  local _, _, _, totalCount, itemID = findItemInternal(reagent, chain, false);
   if (reagent == nil) then
     return -1, nil;
   end
@@ -4828,7 +4904,7 @@ end
 -- we now search on ItemLink in addition to itemText, in order to support Dragonflight item qualities
 -- Returns: bag, slot, count, texture (first match only - count is stackCount of first match)
 function SMARTBUFF_FindItem(reagent, chain)
-  local bag, slot, firstCount, _, _, texture = SMARTBUFF_FindItemInternal(reagent, chain, O and O.Debug);
+  local bag, slot, firstCount, _, _, texture = findItemInternal(reagent, chain, O and O.Debug);
   if (reagent == nil) then
     return nil, nil, -1, nil;
   end
@@ -4845,9 +4921,9 @@ function SMARTBUFF_IsActiveBattlefield(zone)
     status, map, instanceId, _, _, teamSize = GetBattlefieldStatus(i);
     if (status and status ~= "none") then
       SMARTBUFF_AddMsgD("Battlefield status = " ..
-      ChkS(status) ..
-      ", Id = " .. ChkS(instanceId) .. ", TS = " .. ChkS(teamSize) .. ", Map = " .. ChkS(map) .. ", Zone = " ..
-      ChkS(zone));
+      chkS(status) ..
+      ", Id = " .. chkS(instanceId) .. ", TS = " .. chkS(teamSize) .. ", Map = " .. chkS(map) .. ", Zone = " ..
+      chkS(zone));
     else
       SMARTBUFF_AddMsgD("Battlefield status = none");
     end
@@ -4865,7 +4941,7 @@ end
 
 
 -- Helper functions ---------------------------------------------------------------------------------------
-function SMARTBUFF_toggleBool(b, msg)
+function SMARTBUFF_ToggleBool(b, msg)
   if (not b or b == nil) then
     b = true;
     SMARTBUFF_AddMsg(SMARTBUFF_TITLE .. ": " .. msg .. GR .. "On", true);
@@ -5120,12 +5196,12 @@ function SMARTBUFF_Options_Init(self)
     O.VersionNr = SMARTBUFF_VERSIONNR;
     StaticPopup_Show("SMARTBUFF_BUFFS_PURGE");
     SMARTBUFF_SetTemplate()
-    InitBuffOrder(true);
+    initBuffOrder(true);
     SMARTBUFF_AddMsg("Upgraded SmartBuff to " .. SMARTBUFF_VERSION, true);
   end
   -- TODO: Bring back major reset of everything but also there's a UI button still to do it
 
-  if (not IsVisibleToPlayer(SmartBuff_KeyButton)) then
+  if (not isVisibleToPlayer(SmartBuff_KeyButton)) then
     SmartBuff_KeyButton:ClearAllPoints();
     SmartBuff_KeyButton:SetPoint("CENTER", UIParent, "CENTER", 0, 100);
   end
@@ -5203,7 +5279,7 @@ function SMARTBUFF_ResetBuffs()
   SMARTBUFF_ClearValidSpells();
 
   SMARTBUFF_SetTemplate();
-  InitBuffOrder(true);
+  initBuffOrder(true);
   SMARTBUFF_OptionsFrame_Close(true);
 end
 
@@ -5296,7 +5372,7 @@ function SMARTBUFF_ResetBindings()
 end
 
 -- SmartBuff commandline menu ---------------------------------------------------------------------------------------
-function SMARTBUFF_command(msg)
+function SMARTBUFF_Command(msg)
   if (not isInit) then
     SMARTBUFF_AddMsgWarn(SMARTBUFF_VERS_TITLE .. " not initialized correctly!", true);
     return;
@@ -5313,11 +5389,11 @@ function SMARTBUFF_command(msg)
     SMARTBUFF_ShowBuffTimers();
   elseif (msg == "target") then
     if (SMARTBUFF_PreCheck(0)) then
-      SMARTBUFF_checkBlocklist();
+      SMARTBUFF_CheckBlocklist();
       SMARTBUFF_BuffUnit("target", 0, 0);
     end
   elseif (msg == "debug") then
-    O.Debug = SMARTBUFF_toggleBool(O.Debug, "Debug active = ");
+    O.Debug = SMARTBUFF_ToggleBool(O.Debug, "Debug active = ");
   elseif (msg == "open") then
     SMARTBUFF_OptionsFrame_Open(true);
   elseif (msg == "sync") then
@@ -5374,13 +5450,13 @@ function SMARTBUFF_command(msg)
   end
 end
 
--- END SMARTBUFF_command
+-- END SMARTBUFF_Command
 
 
 -- SmartBuff options toggle ---------------------------------------------------------------------------------------
 function SMARTBUFF_OToggle()
   if (not isInit) then return; end
-  O.Toggle = SMARTBUFF_toggleBool(O.Toggle, "Active = ");
+  O.Toggle = SMARTBUFF_ToggleBool(O.Toggle, "Active = ");
   SMARTBUFF_CheckMiniMapButton();
   if (O.Toggle) then
     SMARTBUFF_SetTemplate();
@@ -5463,7 +5539,7 @@ end
 function SMARTBUFF_OIncludeToys()
   O.IncludeToys = not O.IncludeToys;
   SMARTBUFF_Options_OnShow();
-  -- InitBuffOrder(false) is already called in SMARTBUFF_Options_OnShow(), no need to reset order
+  -- initBuffOrder(false) is already called in SMARTBUFF_Options_OnShow(), no need to reset order
 end
 
 function SMARTBUFF_OToggleMsgNormal()
@@ -5517,14 +5593,16 @@ function SMARTBUFF_ORetainTemplate()
 end
 
 function SMARTBUFF_OSelfFirst()
-  B[CS()][currentTemplate].SelfFirst = not B[CS()][currentTemplate].SelfFirst;
+  local tm = ensureBuffsTemplateTable(currentTemplate);
+  if (not tm) then return; end
+  tm.SelfFirst = not tm.SelfFirst;
 end
 
 function SMARTBUFF_OToggleBuff(s, i)
   if (cBuffs[i] == nil) then
     return
   end
-  local bs = GetBuffSettings(cBuffs[i].BuffS);
+  local bs = getBuffSettings(cBuffs[i].BuffS);
   if (bs == nil) then
     return;
   end
@@ -5533,7 +5611,7 @@ function SMARTBUFF_OToggleBuff(s, i)
     bs.EnableS = not bs.EnableS;
     --SMARTBUFF_AddMsgD("OToggleBuff = "..cBuffs[i].BuffS..", "..tostring(bs.EnableS));
     if (bs.EnableS) then
-      SmartBuff_BuffSetup_Show(i);
+      SMARTBUFF_BuffSetup_Show(i);
     else
       SmartBuff_BuffSetup:Hide();
       iLastBuffSetup = -1;
@@ -5588,14 +5666,14 @@ function SMARTBUFF_OptionsFrame_Close(force)
   end
 end
 
-function SmartBuff_BuffSetup_Show(i)
+function SMARTBUFF_BuffSetup_Show(i)
   local icon1 = cBuffs[i].IconS;
   local icon2 = cBuffs[i].IconG;
   local name = cBuffs[i].BuffS;
   local btype = cBuffs[i].Type;
   local hidden = true;
   local n = 0;
-  local bs = GetBuffSettings(name);
+  local bs = getBuffSettings(name);
 
   if (name == nil or btype == SMARTBUFF_CONST_TRACK) then
     SmartBuff_BuffSetup:Hide();
@@ -5635,7 +5713,7 @@ function SmartBuff_BuffSetup_Show(i)
 
     local obj = SmartBuff_BuffSetup_BuffText;
     if (name) then
-      local displayName = GetBuffDisplayName(name, btype);
+      local displayName = getBuffDisplayName(name, btype);
       if (cBuffs[i].SingleTargetGroup) then
         displayName = displayName .. " - single";
       end
@@ -5735,39 +5813,39 @@ function SmartBuff_BuffSetup_Show(i)
     SmartBuff_BuffSetup:Show();
 
     if (SmartBuff_PlayerSetup:IsVisible()) then
-      SmartBuff_PS_Show(iCurrentList);
+      SMARTBUFF_PS_Show(iCurrentList);
     end
   end
 end
 
 -- Returns tooltip text for cbSelf/cbSelfNot; appends single-target guidance when buff has SingleTargetGroup.
-function SmartBuff_GetSelfTooltipText(baseText)
+function SMARTBUFF_GetSelfTooltipText(baseText)
   if (iLastBuffSetup and iLastBuffSetup > 0 and cBuffs and cBuffs[iLastBuffSetup] and cBuffs[iLastBuffSetup].SingleTargetGroup) then
     return { baseText, SMARTBUFF_BSTT_SINGLETARGET };
   end
   return baseText;
 end
 
-function SmartBuff_BuffSetup_ManaLimitChanged(self)
+function SMARTBUFF_BuffSetup_ManaLimitChanged(self)
   local i = iLastBuffSetup;
   if (i <= 0) then
     return;
   end
   local name = cBuffs[i].BuffS;
-  local cBuff = GetBuffSettings(name);
+  local cBuff = getBuffSettings(name);
   if (cBuff) then
     cBuff.ManaLimit = self:GetNumber();
   end
 end
 
-function SmartBuff_BuffSetup_OnClick()
+function SMARTBUFF_BuffSetup_OnClick()
   local i = iLastBuffSetup;
   local ct = currentTemplate;
   if (i <= 0) then
     return;
   end
   local name     = cBuffs[i].BuffS;
-  local cBuff    = GetBuffSettings(name);
+  local cBuff    = getBuffSettings(name);
 
   cBuff.SelfOnly = SmartBuff_BuffSetup_cbSelf:GetChecked();
   cBuff.SelfNot  = SmartBuff_BuffSetup_cbSelfNot:GetChecked();
@@ -5794,7 +5872,7 @@ function SmartBuff_BuffSetup_OnClick()
   --SMARTBUFF_AddMsgD("Buff setup saved");
 end
 
-function SmartBuff_BuffSetup_ToolTip(mode)
+function SMARTBUFF_BuffSetup_ToolTip(mode)
   local i = iLastBuffSetup;
   if (i <= 0) then
     return;
@@ -5847,15 +5925,15 @@ function SMARTBUFF_Options_OnShow()
       SmartBuffOptionsFrame:GetHeight() / 2);
   end
 
-  SmartBuff_ShowControls("SmartBuffOptionsFrame", true);
+  SMARTBUFF_ShowControls("SmartBuffOptionsFrame", true);
 
   -- Clean up buff order (remove invalid, add missing) without resetting custom order
-  InitBuffOrder(false);
+  initBuffOrder(false);
 
   SmartBuffOptionsFrame_cbSB:SetChecked(O.Toggle);
   SmartBuffOptionsFrame_cbAuto:SetChecked(O.ToggleAuto);
   SmartBuffOptionsFrameAutoTimer:SetValue(O.AutoTimer);
-  SmartBuff_SetSliderText(SmartBuffOptionsFrameAutoTimer, SMARTBUFF_OFT_AUTOTIMER, O.AutoTimer, INT_SPELL_DURATION_SEC);
+  SMARTBUFF_SetSliderText(SmartBuffOptionsFrameAutoTimer, SMARTBUFF_OFT_AUTOTIMER, O.AutoTimer, INT_SPELL_DURATION_SEC);
   SmartBuffOptionsFrame_cbAutoCombat:SetChecked(O.ToggleAutoCombat);
   SmartBuffOptionsFrame_cbAutoChat:SetChecked(O.ToggleAutoChat);
   SmartBuffOptionsFrame_cbAutoSplash:SetChecked(O.ToggleAutoSplash);
@@ -5888,15 +5966,16 @@ function SMARTBUFF_Options_OnShow()
   SmartBuffOptionsFrame_cbRetainTemplate:SetChecked(O.RetainTemplate);
 
   SmartBuffOptionsFrameRebuffTimer:SetValue(O.RebuffTimer);
-  SmartBuff_SetSliderText(SmartBuffOptionsFrameRebuffTimer, SMARTBUFF_OFT_REBUFFTIMER, O.RebuffTimer,
+  SMARTBUFF_SetSliderText(SmartBuffOptionsFrameRebuffTimer, SMARTBUFF_OFT_REBUFFTIMER, O.RebuffTimer,
     INT_SPELL_DURATION_SEC);
   SmartBuffOptionsFrameBLDuration:SetValue(O.BlocklistTimer);
-  SmartBuff_SetSliderText(SmartBuffOptionsFrameBLDuration, SMARTBUFF_OFT_BLDURATION, O.BlocklistTimer,
+  SMARTBUFF_SetSliderText(SmartBuffOptionsFrameBLDuration, SMARTBUFF_OFT_BLDURATION, O.BlocklistTimer,
     INT_SPELL_DURATION_SEC);
 
   SMARTBUFF_SetCheckButtonBuffs(0);
 
-  SmartBuffOptionsFrame_cbSelfFirst:SetChecked(B[CS()][currentTemplate].SelfFirst);
+  local tm = buffsTemplateTable(currentTemplate);
+  SmartBuffOptionsFrame_cbSelfFirst:SetChecked(tm and tm.SelfFirst);
 
   SMARTBUFF_Splash_Show();
 
@@ -5927,7 +6006,7 @@ function SMARTBUFF_Options_OnHide()
   --collectgarbage();
 end
 
-function SmartBuff_ShowControls(sName, bShow)
+function SMARTBUFF_ShowControls(sName, bShow)
   local children = { _G[sName]:GetChildren() };
   for i, child in pairs(children) do
     --SMARTBUFF_AddMsgD(i .. ": " .. child:GetName());
@@ -5941,7 +6020,7 @@ function SmartBuff_ShowControls(sName, bShow)
   end
 end
 
-function SmartBuffOptionsFrameSlider_OnLoad(self, low, high, step, labels)
+function SMARTBUFF_OptionsFrameSlider_OnLoad(self, low, high, step, labels)
   _G[self:GetName() .. "Text"]:SetFontObject(GameFontNormalSmall);
   if (labels) then
     if (self:GetOrientation() ~= "VERTICAL") then
@@ -5964,7 +6043,7 @@ function SmartBuffOptionsFrameSlider_OnLoad(self, low, high, step, labels)
   self.GetValue = function()
     local n = self:GetValueBase();
     if (n) then
-      local r = Round(n);
+      local r = round(n);
       if (r ~= n) then
         self:SetValue(n);
       end
@@ -5974,7 +6053,7 @@ function SmartBuffOptionsFrameSlider_OnLoad(self, low, high, step, labels)
   end;
 end
 
-function SmartBuff_SetSliderText(self, text, value, valformat, setval)
+function SMARTBUFF_SetSliderText(self, text, value, valformat, setval)
   if (not self or not value) then return end
   local s;
   if (setval) then self:SetValue(value) end
@@ -5986,7 +6065,7 @@ function SmartBuff_SetSliderText(self, text, value, valformat, setval)
   _G[self:GetName() .. "Text"]:SetText(text .. " " .. WH .. s .. "|r");
 end
 
-function SmartBuff_BuffSetup_RBTime_OnValueChanged(self)
+function SMARTBUFF_BuffSetup_RBTime_OnValueChanged(self)
   _G[SmartBuff_BuffSetup_RBTime:GetName() .. "Text"]:SetText(WH .. format("%.0f", self:GetValue()) .. "\nsec|r");
 end
 
@@ -6043,7 +6122,7 @@ function SMARTBUFF_DropDownTemplate_OnClick(self)
   UIDropDownMenu_SetSelectedValue(SmartBuffOptionsFrame_ddTemplates, i);
   tmp = SMARTBUFF_TEMPLATES[i];
   if (currentTemplate ~= tmp) then
-    MaybeCopyTemplateOnFirstSwitch(currentTemplate, tmp);
+    maybeCopyTemplateOnFirstSwitch(currentTemplate, tmp);
     SmartBuff_BuffSetup:Hide();
     iLastBuffSetup = -1;
     SmartBuff_PlayerSetup:Hide();
@@ -6143,18 +6222,18 @@ end
 
 
 -- Playerlist functions ---------------------------------------------------------------------------------------
-function SmartBuff_PlayerSetup_OnShow()
+function SMARTBUFF_PlayerSetup_OnShow()
 end
 
-function SmartBuff_PlayerSetup_OnHide()
+function SMARTBUFF_PlayerSetup_OnHide()
 end
 
-function SmartBuff_PS_GetList()
+function SMARTBUFF_PS_GetList()
   if (iLastBuffSetup <= 0) then return {} end
 
   local name = cBuffs[iLastBuffSetup].BuffS;
   if (name) then
-    local cBuff = GetBuffSettings(name);
+    local cBuff = getBuffSettings(name);
     if (cBuff) then
       if (iCurrentList == 1) then
         if (not cBuff.AddList) then cBuff.AddList = {}; end
@@ -6168,7 +6247,7 @@ function SmartBuff_PS_GetList()
   return {};
 end
 
-function SmartBuff_PS_GetUnitList()
+function SMARTBUFF_PS_GetUnitList()
   if (iCurrentList == 1) then
     return cAddUnitList;
   else
@@ -6176,17 +6255,17 @@ function SmartBuff_PS_GetUnitList()
   end
 end
 
-function SmartBuff_UnitIsAdd(unit)
+function SMARTBUFF_UnitIsAdd(unit)
   if (unit and cAddUnitList[unit]) then return true end
   return false;
 end
 
-function SmartBuff_UnitIsIgnored(unit)
+function SMARTBUFF_UnitIsIgnored(unit)
   if (unit and cIgnoreUnitList[unit]) then return true end
   return false;
 end
 
-function SmartBuff_PS_Show(i)
+function SMARTBUFF_PS_Show(i)
   iCurrentList = i;
   iLastPlayer = -1;
   local obj = SmartBuff_PlayerSetup_Title;
@@ -6198,23 +6277,23 @@ function SmartBuff_PS_Show(i)
   obj:ClearFocus();
   SmartBuff_PlayerSetup_EditBox:ClearFocus();
   SmartBuff_PlayerSetup:Show();
-  SmartBuff_PS_SelectPlayer(0);
+  SMARTBUFF_PS_SelectPlayer(0);
 end
 
-function SmartBuff_PS_AddPlayer()
-  local cList = SmartBuff_PS_GetList();
+function SMARTBUFF_PS_AddPlayer()
+  local cList = SMARTBUFF_PS_GetList();
   local un = UnitName("target");
   if (un and (UnitInRaid("target") or UnitInParty("target") or O.Debug)) then
     if (not cList[un]) then
       cList[un] = true;
-      SmartBuff_PS_SelectPlayer(0);
+      SMARTBUFF_PS_SelectPlayer(0);
     end
   end
 end
 
-function SmartBuff_PS_RemovePlayer()
+function SMARTBUFF_PS_RemovePlayer()
   local n = 0;
-  local cList = SmartBuff_PS_GetList();
+  local cList = SMARTBUFF_PS_GetList();
   for player in pairs(cList) do
     n = n + 1;
     if (n == iLastPlayer) then
@@ -6222,11 +6301,11 @@ function SmartBuff_PS_RemovePlayer()
       break;
     end
   end
-  SmartBuff_PS_SelectPlayer(0);
+  SMARTBUFF_PS_SelectPlayer(0);
 end
 
-function SmartBuff_PS_ClearList()
-  local cList = SmartBuff_PS_GetList();
+function SMARTBUFF_PS_ClearList()
+  local cList = SMARTBUFF_PS_GetList();
   for k in pairs(cList) do
     cList[k] = nil;
   end
@@ -6235,13 +6314,13 @@ function SmartBuff_PS_ClearList()
   else
     wipe(cIgnoreUnitList);
   end
-  SmartBuff_PS_SelectPlayer(0);
+  SMARTBUFF_PS_SelectPlayer(0);
 end
 
-function SmartBuff_AddToUnitList(idx, unit, subgroup)
+function SMARTBUFF_AddToUnitList(idx, unit, subgroup)
   iCurrentList = idx;
-  local cList = SmartBuff_PS_GetList();
-  local cUnitList = SmartBuff_PS_GetUnitList();
+  local cList = SMARTBUFF_PS_GetList();
+  local cUnitList = SMARTBUFF_PS_GetUnitList();
   if (unit and subgroup) then
     local un = UnitName(unit);
     if (un and cList[un]) then
@@ -6251,9 +6330,9 @@ function SmartBuff_AddToUnitList(idx, unit, subgroup)
   end
 end
 
-function SmartBuff_PS_SelectPlayer(iOp)
+function SMARTBUFF_PS_SelectPlayer(iOp)
   local idx = iLastPlayer + iOp;
-  local cList = SmartBuff_PS_GetList();
+  local cList = SMARTBUFF_PS_GetList();
   local s = "";
 
   local tn = 0;
@@ -6289,7 +6368,7 @@ function SmartBuff_PS_SelectPlayer(iOp)
   end
 end
 
-function SmartBuff_PS_Resize()
+function SMARTBUFF_PS_Resize()
   local h = SmartBuffOptionsFrame:GetHeight();
   local b = true;
 
@@ -6302,7 +6381,7 @@ function SmartBuff_PS_Resize()
     --SmartBuff_BuffSetup:SetHeight(40);
     b = false;
   end
-  SmartBuff_ShowControls("SmartBuffOptionsFrame", b);
+  SMARTBUFF_ShowControls("SmartBuffOptionsFrame", b);
   if (b) then
     SMARTBUFF_SetCheckButtonBuffs(1);
   end
@@ -6596,7 +6675,7 @@ end
 
 local ScrBtnSize = 20;
 local ScrLineHeight = 18;
-local function SetPosScrollButtons(parent, cBtn)
+local function setPosScrollButtons(parent, cBtn)
   local btn;
   local name;
   for i = 1, #cBtn, 1 do
@@ -6607,7 +6686,7 @@ local function SetPosScrollButtons(parent, cBtn)
 end
 
 local StartY, EndY;
-local function CreateScrollButton(name, parent, cBtn, onClick, onDragStop)
+local function createScrollButton(name, parent, cBtn, onClick, onDragStop)
   local btn = CreateFrame("CheckButton", name, parent, "UICheckButtonTemplate");
   btn:SetWidth(ScrBtnSize);
   btn:SetHeight(ScrBtnSize);
@@ -6628,7 +6707,7 @@ local function CreateScrollButton(name, parent, cBtn, onClick, onDragStop)
       local i = tonumber(self:GetID()) + FauxScrollFrame_GetOffset(parent);
       local n = math.floor((StartY - EndY) / ScrLineHeight);
       self:StopMovingOrSizing();
-      SetPosScrollButtons(parent, cBtn);
+      setPosScrollButtons(parent, cBtn);
       onDragStop(i, n);
     end
     );
@@ -6656,18 +6735,18 @@ local function CreateScrollButton(name, parent, cBtn, onClick, onDragStop)
 end
 
 
-local function CreateScrollButtons(self, cBtn, sBtnName, onClick, onDragStop)
+local function createScrollButtons(self, cBtn, sBtnName, onClick, onDragStop)
   local btn, i;
   for i = 1, maxScrollButtons, 1 do
-    btn = CreateScrollButton(sBtnName .. i, self, cBtn, onClick, onDragStop);
+    btn = createScrollButton(sBtnName .. i, self, cBtn, onClick, onDragStop);
     btn:SetID(i);
     cBtn[i] = btn;
   end
-  SetPosScrollButtons(self, cBtn);
+  setPosScrollButtons(self, cBtn);
 end
 
 
-local function OnScroll(self, cData, sBtnName)
+local function onScroll(self, cData, sBtnName)
   local num = #cData;
   local n, numToDisplay;
 
@@ -6678,8 +6757,8 @@ local function OnScroll(self, cData, sBtnName)
   end
 
   FauxScrollFrame_Update(self, num, floor(numToDisplay / 3 + 0.5), ScrLineHeight);
-  -- [B]ufflist for current spec, current template; use GetBuffSettings so item keys (link vs item:ID) resolve to same entry
-  local t = B[CS()][CT()];
+  -- [B]ufflist for current spec, current template; use getBuffSettings so item keys (link vs item:ID) resolve to same entry
+  local t = buffsTemplateTable();
   for i = 1, maxScrollButtons, 1 do
     n = i + FauxScrollFrame_GetOffset(self);
     btn = _G[sBtnName .. i];
@@ -6689,12 +6768,12 @@ local function OnScroll(self, cData, sBtnName)
         btn:SetHighlightFontObject("GameFontHighlightSmall");
         local idx = cBuffIndex[cData[n]];
         local btype = (idx and cBuffs[idx]) and cBuffs[idx].Type or nil;
-        local displayName = GetBuffDisplayName(cData[n], btype);
+        local displayName = getBuffDisplayName(cData[n], btype);
         if (idx and cBuffs[idx] and cBuffs[idx].SingleTargetGroup) then
           displayName = displayName .. " - single";
         end
         btn:SetText(displayName);
-        local bs = GetBuffSettings(cData[n]);
+        local bs = getBuffSettings(cData[n]);
         if (bs) then
           btn:SetChecked(bs.EnableS);
         else
@@ -6717,50 +6796,50 @@ function SMARTBUFF_BuffOrderOnScroll(self, arg1)
   local name = "SMARTBUFF_BtnScrollBO";
   if (not cScrBtnBO and self) then
     cScrBtnBO = {};
-    CreateScrollButtons(self, cScrBtnBO, name, SMARTBUFF_BuffOrderBtnOnClick, SMARTBUFF_BuffOrderBtnOnDragStop);
+    createScrollButtons(self, cScrBtnBO, name, SMARTBUFF_BuffOrderBtnOnClick, SMARTBUFF_BuffOrderBtnOnDragStop);
   end
 
-  if not B[CS()] then B[CS()] = {} end
-  if (B[CS()].Order == nil) then
-    B[CS()].Order = {};
+  if not B[getCurrentSpec()] then B[getCurrentSpec()] = {} end
+  if (B[getCurrentSpec()].Order == nil) then
+    B[getCurrentSpec()].Order = {};
   end
 
   local t = {};
-  for _, v in pairs(B[CS()].Order) do
+  for _, v in pairs(B[getCurrentSpec()].Order) do
     if (v) then
       tinsert(t, v);
     end
   end
-  OnScroll(self, t, name);
+  onScroll(self, t, name);
 end
 
 -- Left click toggles buff enable; right click opens buff options (checkbox state restored so it does not toggle).
 -- Guards (i and i > 0) avoid nil index if order/index is out of sync when the row is clicked.
 function SMARTBUFF_BuffOrderBtnOnClick(self, button)
   local n = self:GetID() + FauxScrollFrame_GetOffset(self:GetParent());
-  local ord = B[CS()].Order;
+  local ord = B[getCurrentSpec()].Order;
   local buffnS = ord and ord[n];
   local i = buffnS and cBuffIndex[buffnS];
   if (button == "LeftButton") then
     if (i and i > 0) then SMARTBUFF_OToggleBuff("S", i); end
   else
     if (i and i > 0) then
-      SmartBuff_BuffSetup_Show(i);
-      local bs = GetBuffSettings(buffnS);
+      SMARTBUFF_BuffSetup_Show(i);
+      local bs = getBuffSettings(buffnS);
       self:SetChecked(bs and bs.EnableS);
     end
   end
 end
 
 function SMARTBUFF_BuffOrderBtnOnDragStop(i, n)
-  treorder(B[CS()].Order, i, n);
+  treorder(B[getCurrentSpec()].Order, i, n);
   SMARTBUFF_BuffOrderOnScroll();
 end
 
 -- Reset List: buff order/sorting only (B[].Order); no options or buff profiles.
 function SMARTBUFF_BuffOrderReset()
   SMARTBUFF_InvalidateBuffCache();
-  InitBuffOrder(true);
+  initBuffOrder(true);
   SMARTBUFF_BuffOrderOnScroll();
 end
 

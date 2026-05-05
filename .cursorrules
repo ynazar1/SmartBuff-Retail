@@ -1,5 +1,13 @@
 # SmartBuff AddOn Development Rules
 
+## AddOn function naming (authoritative)
+- **Applies to function symbols only.** Do not rename variables, SavedVariables keys, frame names, or Lua table fields for style.
+- **Global functions** owned by this add-on use **`SMARTBUFF_` + PascalCase segments** (same style as existing `SMARTBUFF_Options_OnLoad`, `SMARTBUFF_Check`). Every add-on global function should live in `_G` with the `SMARTBUFF_` prefix so it cannot collide with other UI code.
+- **Local functions** (`local function ...`) use **camelCase** (initial lowercase, segments capitalized inside the name).
+- **Exceptions:** Extensions merged into Blizzard globals keep their existing shape:
+  - `Enum.MakeEnum`, `Enum.MakeEnumFromTable`, `Enum.MakeDict`, and `Enum.SmartBuffGroup` (the host `Enum` table is Blizzard’s).
+  - `table.invert`
+
 ## Code Style
 - Use the same code style as existing files
 - Follow Lua conventions used in the project

@@ -142,7 +142,7 @@ NumberFontNormalHuge
 ---@param ... ...
 ---@return table
 function Enum.MakeEnum(...)
-  return tInvert({...})
+  return table.invert({...})
     --  for i = 1, #t do
     --      local v = t[i]
     --      --t[i] = nil
@@ -159,7 +159,7 @@ function Enum.MakeEnum(...)
 ---print(Enum.Fish.Herring) -- prints "Herring"
 ---```
 function Enum.MakeEnumFromTable(t)
-    return tInvert(t)
+    return table.invert(t)
 end
 
 -- Returns a table `t` of self-indexed values
@@ -202,14 +202,14 @@ local Default, Nil = {}, function () end -- for uniqueness
 -- Implements a `switch` statement in Lua.
 -- ## Example
 -- ```
--- switch(case) = {
+-- SMARTBUFF_Switch(case) = {
 --     [1] = function() print("one") end,
 --     [2] = print,
 --     [3] = math.sin,
 --     default = function() print("default") end,
 -- }
 -- ```
-function switch (case)
+function SMARTBUFF_Switch(case)
   return setmetatable({ case }, {
     __call = function (t, cases)
       local item = #t == 0 and Nil or t[1]
@@ -224,7 +224,7 @@ end
 ---[View documents](command:extension.lua.doc?["en-us/51/manual.html/pdf-string.format"])
 ---@param s any
 ---@param ... any
-function printf(s, ...)
+function SMARTBUFF_Printf(s, ...)
   print("   ",SMARTBUFF_TITLE,"::",string.format(s, ...))
 end
 
@@ -234,13 +234,13 @@ end
 ---
 --- [View documents](command:extension.lua.doc?["en-us/51/manual.html/pdf-print"])
 ---
-function printd(...)
+function SMARTBUFF_Printd(...)
     print("   ",SMARTBUFF_TITLE,"::",...)
 end
 
 --- Prints the value of any global variable, table value, frame, function result, or any valid Lua expression. Output is color coded for easier reading. Tables display up to 30 values, the rest are skipped and a message is shown.
 ---@param t any
 ---@param startkey? any
-function dump(t, startkey)
+function SMARTBUFF_Dump(t, startkey)
   DevTools_Dump(t, startkey)
 end

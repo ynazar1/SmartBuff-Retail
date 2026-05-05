@@ -145,13 +145,13 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 4, 48, 1);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 4, 48, 1);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.CurrentFontSize) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_FONTSIZE, o.CurrentFontSize, "%d", true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_FONTSIZE, o.CurrentFontSize, "%d", true);
                         end
                     </OnShow>
                     <OnValueChanged>
@@ -164,7 +164,7 @@
                         local n = self:GetValue();
 
                         if (o and n ~= o.CurrentFontSize) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_FONTSIZE, n, "%d");
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_FONTSIZE, n, "%d");
                         f:SetFont(fName, n, fFlags)
                         o.CurrentFontSize = n;
                         SMARTBUFF_Splash_ChangeFont(1);
@@ -185,20 +185,20 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 64, 4);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 64, 4);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.SplashIconSize) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_ICONSIZE, o.SplashIconSize, "%d", true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_ICONSIZE, o.SplashIconSize, "%d", true);
                         end
                     </OnShow>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.SplashIconSize ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_ICONSIZE, n, "%d");
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_ICONSIZE, n, "%d");
                         o.SplashIconSize = n;
                         SMARTBUFF_Splash_ChangeFont(1);
                         end
@@ -543,20 +543,20 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 1, 60, 1);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 1, 60, 1);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.AutoTimer) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_AUTOTIMER, o.AutoTimer, INT_SPELL_DURATION_SEC, true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_AUTOTIMER, o.AutoTimer, INT_SPELL_DURATION_SEC, true);
                         end
                     </OnShow>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.AutoTimer ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_AUTOTIMER, n, INT_SPELL_DURATION_SEC);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_AUTOTIMER, n, INT_SPELL_DURATION_SEC);
                         o.AutoTimer = n;
                         end
                     </OnValueChanged>
@@ -669,20 +669,20 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 10, 1);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 10, 1);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.MinCharges) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_MSG_CHARGES, o.MinCharges, "%d", true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_MSG_CHARGES, o.MinCharges, "%d", true);
                         end
                     </OnShow>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.MinCharges ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_MSG_CHARGES, n, "%d");
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_MSG_CHARGES, n, "%d");
                         o.MinCharges = n;
                         if (n == 0) then
                         o.CheckCharges = false;
@@ -706,20 +706,20 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 5, 0.2);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 5, 0.2);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.SplashDuration) then
-                        SmartBuff_SetSliderText(self, "Splash", o.SplashDuration, SPELL_DURATION_SEC, true);
+                        SMARTBUFF_SetSliderText(self, "Splash", o.SplashDuration, SPELL_DURATION_SEC, true);
                         end
                     </OnShow>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.SplashDuration ~= n) then
-                        SmartBuff_SetSliderText(self, "Splash", n, SPELL_DURATION_SEC);
+                        SMARTBUFF_SetSliderText(self, "Splash", n, SPELL_DURATION_SEC);
                         o.SplashDuration = n;
                         end
                     </OnValueChanged>
@@ -738,20 +738,20 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 600, 10);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 600, 10);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.RebuffTimer) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_REBUFFTIMER, o.RebuffTimer, INT_SPELL_DURATION_SEC, true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_REBUFFTIMER, o.RebuffTimer, INT_SPELL_DURATION_SEC, true);
                         end
                     </OnShow>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.RebuffTimer ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_REBUFFTIMER, n, INT_SPELL_DURATION_SEC);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_REBUFFTIMER, n, INT_SPELL_DURATION_SEC);
                         o.RebuffTimer = n;
                         end
                     </OnValueChanged>
@@ -1028,14 +1028,14 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 40, 1);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 40, 1);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnValueChanged>
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.BlocklistTimer ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_OFT_BLDURATION, n, INT_SPELL_DURATION_SEC);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_OFT_BLDURATION, n, INT_SPELL_DURATION_SEC);
                         o.BlocklistTimer = n;
                         end
                     </OnValueChanged>
@@ -1460,18 +1460,18 @@
                         local o = SMARTBUFF_Options;
                         local n = self:GetValue();
                         if (o and o.AutoSoundSelection ~= n) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_MSG_SOUNDS, n, "%d");
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_MSG_SOUNDS, n, "%d");
                         o.AutoSoundSelection = n;
                         end
                     </OnValueChanged>
                     <OnShow>
                         local o = SMARTBUFF_Options;
                         if (o and o.AutoSoundSelection) then
-                        SmartBuff_SetSliderText(self, SMARTBUFF_MSG_SOUNDS, o.AutoSoundSelection, "%d", true);
+                        SMARTBUFF_SetSliderText(self, SMARTBUFF_MSG_SOUNDS, o.AutoSoundSelection, "%d", true);
                         end
                     </OnShow>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 1, 24, 1);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 1, 24, 1);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                 </Scripts>
@@ -1569,7 +1569,7 @@
                 <Scripts>
                     <OnEnter>
                         GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-                        SmartBuff_BuffSetup_ToolTip(1);
+                        SMARTBUFF_BuffSetup_ToolTip(1);
                     </OnEnter>
                     <OnLeave>
                         GameTooltip:Hide();
@@ -1591,7 +1591,7 @@
                 <Scripts>
                     <OnEnter>
                         GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-                        SmartBuff_BuffSetup_ToolTip(2);
+                        SMARTBUFF_BuffSetup_ToolTip(2);
                     </OnEnter>
                     <OnLeave>
                         GameTooltip:Hide();
@@ -1619,7 +1619,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1643,7 +1643,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1667,7 +1667,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1691,7 +1691,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1715,7 +1715,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1756,7 +1756,7 @@
                         self:ClearFocus();
                     </OnEnterPressed>
                     <OnTextChanged>
-                        SmartBuff_BuffSetup_ManaLimitChanged(self);
+                        SMARTBUFF_BuffSetup_ManaLimitChanged(self);
                     </OnTextChanged>
                 </Scripts>
             </EditBox>
@@ -1780,7 +1780,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1804,7 +1804,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1828,7 +1828,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1852,7 +1852,7 @@
                         _G[self:GetName().."Text"]:SetFontObject(GameFontNormalSmall);
                     </OnLoad>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -1869,7 +1869,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_Show(1);
+                        SMARTBUFF_PS_Show(1);
                     </OnClick>
                 </Scripts>
             </Button>
@@ -1886,7 +1886,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_Show(2);
+                        SMARTBUFF_PS_Show(2);
                     </OnClick>
                 </Scripts>
             </Button>
@@ -1903,7 +1903,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_GroupBuffHelp_Toggle();
+                        SMARTBUFF_GroupBuffHelp_Toggle();
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2184,7 +2184,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2204,7 +2204,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2224,7 +2224,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2244,7 +2244,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2264,7 +2264,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2284,7 +2284,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2304,7 +2304,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2324,7 +2324,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2344,7 +2344,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2364,7 +2364,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2384,7 +2384,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2404,7 +2404,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2422,7 +2422,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2442,7 +2442,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2462,7 +2462,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2482,7 +2482,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2502,7 +2502,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2522,7 +2522,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2542,7 +2542,7 @@
                 </HitRectInsets>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_BuffSetup_OnClick();
+                        SMARTBUFF_BuffSetup_OnClick();
                     </OnClick>
                 </Scripts>
             </CheckButton>
@@ -2557,11 +2557,11 @@
                 </Anchors>
                 <Scripts>
                     <OnLoad>
-                        SmartBuffOptionsFrameSlider_OnLoad(self, 0, 3600, 10, true);
+                        SMARTBUFF_OptionsFrameSlider_OnLoad(self, 0, 3600, 10, true);
                         BackdropTemplateMixin.OnBackdropLoaded(self);
                     </OnLoad>
                     <OnValueChanged>
-                        SmartBuff_BuffSetup_RBTime_OnValueChanged(self);
+                        SMARTBUFF_BuffSetup_RBTime_OnValueChanged(self);
                     </OnValueChanged>
                 </Scripts>
             </Slider>
@@ -2617,7 +2617,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_AddPlayer();
+                        SMARTBUFF_PS_AddPlayer();
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2634,7 +2634,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_RemovePlayer();
+                        SMARTBUFF_PS_RemovePlayer();
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2651,7 +2651,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_SelectPlayer(-1);
+                        SMARTBUFF_PS_SelectPlayer(-1);
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2668,7 +2668,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_SelectPlayer(1);
+                        SMARTBUFF_PS_SelectPlayer(1);
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2685,7 +2685,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_Resize();
+                        SMARTBUFF_PS_Resize();
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2702,7 +2702,7 @@
                 </Anchors>
                 <Scripts>
                     <OnClick>
-                        SmartBuff_PS_ClearList();
+                        SMARTBUFF_PS_ClearList();
                     </OnClick>
                 </Scripts>
             </Button>
@@ -2750,10 +2750,10 @@
         </Frames>
         <Scripts>
             <OnShow>
-                SmartBuff_PlayerSetup_OnShow();
+                SMARTBUFF_PlayerSetup_OnShow();
             </OnShow>
             <OnHide>
-                SmartBuff_PlayerSetup_OnHide();
+                SMARTBUFF_PlayerSetup_OnHide();
             </OnHide>
             <OnLoad>
                 Mixin(self, BackdropTemplateMixin)
